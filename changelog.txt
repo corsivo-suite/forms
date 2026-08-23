@@ -1,0 +1,21 @@
+= Unreleased — 01/08/2026 =
+* Migrata la tab Attività su `@corsivo-suite/wp-admin-dataviews` 0.1.0 con ricerca, filtri e paginazione REST; query PHP, capability `manage_options` e pulizia `admin-post` con nonce restano autoritative.
+* Preservato lo stato della vista nell’URL con compatibilità per i parametri precedenti; incluse admin-app compilata e suite JavaScript/PHP dedicata.
+* Accorpate le letture di marker e impostazioni; rimossa l’installazione sincrona da admin_init e corretto il lifecycle con autoload al fresh install e provisioning su wp_initialize_site.
+* Rimosso il reader compatibile per marker storage opachi: il registro attività accetta solo il formato corrente e resta fail-closed sugli stati invalidi.
+* Token e test storage riallineati al contratto current-only, senza percorsi legacy o migrazioni implicite.
+* Aggiunto il blocco file singolo/multiplo con allowlist, quantità e dimensione configurabili, markup accessibile e submit REST multipart tramite `FormData`.
+* Validazione upload fail-closed su errori PHP, limiti, estensione, MIME reale, immagini, container Office/OpenDocument, contenuti testuali e SHA-256; nessuna fiducia nel MIME del browser.
+* File archiviati obbligatoriamente fuori webroot, con root personalizzabile via `CORSIVO_FORMS_PRIVATE_DIR`, isolamento multisite, marker e metadati plain indipendenti dai salt, percorsi attestati e compensazione degli errori.
+* Idempotenza estesa con fingerprint di parametri e contenuto binario: la stessa `request_id` può riprodurre solo lo stesso payload e non duplica submission, file o notifiche.
+* Bootstrap delle directory private reso convergente tra richieste concorrenti; recupero dei draft interrotti e rollback compensativo non lasciano file orfani.
+* Download allegati limitato a `manage_options` con nonce e verifica di integrità; notifiche e merge contengono soltanto i nomi dei file, senza allegati o link.
+* Retention, eliminazione definitiva, exporter/eraser privacy e uninstall opt-in coordinano submission e file e si fermano su storage non riconosciuto o non eliminabile.
+* Aggiunto `includes/uploads.php` e ampliata la suite su blocco, multipart, validazione, storage, replay, download, privacy, cleanup e multisite.
+
+= 0.3.0 — 13/07/2026 =
+* Moduli Gutenberg componibili con configurazione cifrata, sorgente firmata e supporto FSE.
+* Invii idempotenti con validazione server-side, protezioni anti-abuso e archivio amministrativo privato.
+* Registro attività minimale, retention configurabile, exporter ed eraser privacy a lotti.
+* Notifiche multi-destinatario tramite Corsivo Mail o wp_mail(), con stato e trasporto persistiti.
+* Integrazioni opzionali Corsivo Privacy, Corsivo Newsletter e WPML.

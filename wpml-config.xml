@@ -1,0 +1,70 @@
+<wpml-config>
+	<custom-types>
+		<custom-type translate="0">corsivo_submission</custom-type>
+	</custom-types>
+	<gutenberg-blocks>
+		<gutenberg-block type="corsivo/form" translate="1">
+			<key name="values">
+				<key name="form_title" />
+				<key name="subject" />
+				<key name="success_message" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-text" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="placeholder" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-email" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="placeholder" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-tel" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="placeholder" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-textarea" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="placeholder" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-select" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="placeholder" />
+				<key name="options">
+					<key name="*">
+						<key name="option" />
+					</key>
+				</key>
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-file" translate="1">
+			<key name="values">
+				<key name="label" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-checkbox" translate="1">
+			<key name="values">
+				<key name="label" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-privacy" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="link_label" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-submit" translate="1">
+			<key name="values">
+				<key name="label" />
+			</key>
+		</gutenberg-block>
+	</gutenberg-blocks>
+</wpml-config>

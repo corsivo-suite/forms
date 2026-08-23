@@ -1,0 +1,26 @@
+{
+  "name": "corsivo-forms-activity-admin",
+  "private": true,
+  "version": "0.4.0",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build": "wp-scripts build",
+    "check": "npm run lint:js && npm run test:unit && npm run build && npm run test:assets",
+    "start": "wp-scripts start",
+    "lint:js": "wp-scripts lint-js src",
+    "test:unit": "wp-scripts test-unit-js --runInBand",
+    "test:assets": "php ../tests/admin-dataviews-static.php"
+  },
+  "dependencies": {
+    "@corsivo-suite/wp-admin-dataviews": "0.1.0",
+    "@corsivo-suite/wp-admin-ui": "0.1.0"
+  },
+  "devDependencies": {
+    "@wordpress/components": "36.1.0",
+    "@wordpress/element": "8.2.0",
+    "@wordpress/icons": "15.4.0",
+    "@wordpress/scripts": "32.6.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

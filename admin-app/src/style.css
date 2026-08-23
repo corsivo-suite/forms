@@ -1,0 +1,49 @@
+#corsivo-forms-activity-app {
+	margin-top: 20px;
+}
+
+.corsivo-forms-activity__summary {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 6px;
+	color: #646970;
+	white-space: nowrap;
+}
+
+.corsivo-forms-activity__summary strong {
+	color: #1e1e1e;
+	font-size: 20px;
+}
+
+.corsivo-forms-activity__actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.corsivo-forms-activity__actions form {
+	margin: 0;
+}
+
+.corsivo-forms-activity__detail {
+	display: block;
+	max-width: 34rem;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.corsivo-forms-activity__request {
+	overflow-wrap: anywhere;
+}
+
+.corsivo-forms-activity__empty {
+	display: grid;
+	gap: 4px;
+	justify-items: center;
+	padding: 48px 24px;
+	color: #646970;
+}
+
+.corsivo-forms-activity__empty strong {
+	color: #1e1e1e;
+}

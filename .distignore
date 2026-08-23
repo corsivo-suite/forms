@@ -1,0 +1,13 @@
+/.git/
+/.github/
+/.gitignore
+/.distignore
+/admin-app/.npmrc
+/admin-app/node_modules/
+/admin-app/src/
+/admin-app/package.json
+/admin-app/package-lock.json
+/tests/
+*.map
+*.log
+*.zip

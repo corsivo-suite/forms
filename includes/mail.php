@@ -49,12 +49,13 @@ function corsivo_forms_fields_html(array $rows) {
 
 function corsivo_forms_notification_context(array $submission, $subject) {
 	$context = [
-		'form_title'          => esc_html($submission['form_title']),
-		'page_title'          => esc_html($submission['page_title']),
-		'page_url'            => esc_url($submission['page_url']),
-		'submitted_at'        => esc_html($submission['submitted_at']),
-		'sender_name'         => corsivo_forms_mail_merge_text($submission['sender_name']),
-		'sender_email'        => esc_html($submission['sender_email']),
+		'_html_keys'          => ['fields_html'],
+		'form_title'          => (string) $submission['form_title'],
+		'page_title'          => (string) $submission['page_title'],
+		'page_url'            => esc_url_raw($submission['page_url']),
+		'submitted_at'        => (string) $submission['submitted_at'],
+		'sender_name'         => html_entity_decode(corsivo_forms_mail_merge_text($submission['sender_name']), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+		'sender_email'        => (string) $submission['sender_email'],
 		'notification_subject' => corsivo_forms_mail_merge_subject($subject),
 		'fields_html'         => corsivo_forms_fields_html($submission['rows']),
 	];
@@ -65,7 +66,7 @@ function corsivo_forms_notification_context(array $submission, $subject) {
 		}
 		$field_key   = 'field_' . $row['name'];
 		$field_value = (string) ($row['display'] ?? '');
-		$context[$field_key] = corsivo_forms_mail_merge_text($field_value);
+		$context[$field_key] = html_entity_decode(corsivo_forms_mail_merge_text($field_value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 		$field_url = esc_url_raw($field_value, ['http', 'https', 'mailto', 'tel']);
 		if ($field_url !== '') {
 			$context[$field_key . '_url'] = $field_url;
@@ -95,6 +96,9 @@ function corsivo_forms_mail_merge_text($value) {
 }
 
 function corsivo_forms_notification_recipients(array $submission) {
+	$allowed = preg_split('/[\s,;]+/', (string) corsivo_forms_get_setting('allowed_recipients', '')) ?: [];
+	$allowed[] = (string) get_option('admin_email');
+	$allowed = array_map('strtolower', array_map('sanitize_email', (array) apply_filters('corsivo_forms_allowed_recipients', $allowed)));
 	$configured = trim((string) ($submission['recipients'] ?? ''));
 	if ($configured === '') {
 		$admin_email = sanitize_email((string) get_option('admin_email'));
@@ -119,10 +123,29 @@ function corsivo_forms_notification_recipients(array $submission) {
 			$recipients[$key] = $address;
 		}
 	}
+	if (array_diff(array_keys($recipients), $allowed)) {
+		return new WP_Error('recipient_not_allowed', 'Il destinatario deve essere autorizzato nelle impostazioni di Corsivo Forms.');
+	}
 
 	return $recipients
 		? array_values($recipients)
 		: new WP_Error('invalid_recipients', 'I destinatari configurati non sono validi.');
+}
+
+function corsivo_forms_select_notification_settings(array $settings, array $fields, array $values) {
+	$fields_by_name = array_column($fields, null, 'name');
+	$active_by_name = array_fill_keys(array_keys($fields_by_name), true);
+	foreach ($settings['notification_rules'] ?? [] as $rule) {
+		if (!corsivo_forms_conditions_match($rule['conditions'], $rule['condition_mode'], $fields_by_name, $values, $active_by_name)) {
+			continue;
+		}
+		$settings['recipients'] = $rule['recipients'];
+		if ($rule['subject'] !== '') {
+			$settings['subject'] = $rule['subject'];
+		}
+		break;
+	}
+	return $settings;
 }
 
 function corsivo_forms_notification_subject(array $submission) {

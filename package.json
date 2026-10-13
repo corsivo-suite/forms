@@ -1,0 +1,25 @@
+{
+  "name": "corsivo-forms",
+  "version": "0.5.0",
+  "private": true,
+  "license": "GPL-2.0-or-later",
+  "files": [
+    "admin-app/build",
+    "assets",
+    "changelog.txt",
+    "corsivo-forms.php",
+    "includes",
+    "LICENSE",
+    "README.md",
+    "uninstall.php",
+    "wpml-config.xml"
+  ],
+  "scripts": {
+    "build": "npm --prefix admin-app run build",
+    "check": "npm run lint && npm test && npm run test:php && npm run build",
+    "lint": "npm --prefix admin-app run lint:js",
+    "package": "node admin-app/node_modules/@wordpress/scripts/bin/wp-scripts.js plugin-zip",
+    "test": "npm --prefix admin-app run test:unit",
+    "test:php": "php tests/storage-static.php && php tests/uploads-static.php && php tests/settings-static.php && php tests/security-regressions.php && php tests/option-cache-static.php && php tests/admin-dataviews-static.php && php tests/extension-regressions.php"
+  }
+}

@@ -18,6 +18,7 @@ function corsivo_forms_settings_defaults() {
 		'delete_data_on_uninstall'  => false,
 		'corsivo_mail_enabled'       => true,
 		'corsivo_privacy_enabled'    => true,
+		'allowed_recipients'         => '',
 	];
 }
 
@@ -32,6 +33,7 @@ function corsivo_forms_normalize_settings($settings) {
 		'delete_data_on_uninstall'  => corsivo_forms_sanitize_boolean_setting($settings['delete_data_on_uninstall']),
 		'corsivo_mail_enabled'       => corsivo_forms_sanitize_boolean_setting($settings['corsivo_mail_enabled']),
 		'corsivo_privacy_enabled'    => corsivo_forms_sanitize_boolean_setting($settings['corsivo_privacy_enabled']),
+		'allowed_recipients'         => implode(', ', array_unique(array_filter(array_map('sanitize_email', preg_split('/[\s,;]+/', is_scalar($settings['allowed_recipients']) ? (string) $settings['allowed_recipients'] : '') ?: []), 'is_email'))),
 	];
 }
 
@@ -152,6 +154,10 @@ function corsivo_forms_render_general_settings() {
 	echo '<form method="post" action="' . esc_url(admin_url('options.php')) . '">';
 	settings_fields('corsivo_forms_settings');
 	echo '<table class="form-table" role="presentation"><tbody>';
+	echo '<tr><th scope="row"><label for="corsivo-forms-recipients">' . esc_html('Destinatari autorizzati') . '</label></th><td>';
+	echo '<textarea id="corsivo-forms-recipients" class="large-text" name="corsivo_forms_settings[allowed_recipients]" rows="3">' . esc_textarea($settings['allowed_recipients']) . '</textarea>';
+	echo '<p class="description">' . esc_html('Indirizzi ai quali i moduli possono inviare notifiche, separati da virgola. L’indirizzo amministrativo del sito è sempre consentito.') . '</p>';
+	echo '</td></tr>';
 
 	echo '<tr><th scope="row">' . esc_html('Registro attività') . '</th><td>';
 	echo '<input type="hidden" name="corsivo_forms_settings[log_enabled]" value="0">';

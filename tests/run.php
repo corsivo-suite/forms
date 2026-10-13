@@ -185,6 +185,12 @@ function corsivo_forms_test_upload_request(array $file_params, array $body_param
 }
 
 try {
+	corsivo_forms_test_suspend_hook('corsivo_forms_allowed_recipients');
+	add_filter('corsivo_forms_allowed_recipients', static fn($recipients) => array_merge($recipients, [
+		'one@example.com', 'two@example.com', 'privacy@example.com', 'select@example.com',
+		'files@example.com', 'plain@example.com', 'token@example.com', 'receiver@example.com',
+		'changed@example.com', 'files-e2e@example.com',
+	]));
 	$required_functions = [
 		'corsivo_forms_normalize_settings',
 		'corsivo_forms_normalize_form_settings',
@@ -1788,13 +1794,6 @@ try {
 	corsivo_forms_test_check((int) ($submission_rate_state['count'] ?? 0) === 1, 'solo gli invii validi consumano il budget submission');
 	corsivo_forms_test_check((int) ($validation_rate_state['count'] ?? 0) === 1, 'validation error consuma il budget errori dedicato');
 	corsivo_forms_test_check((int) ($preflight_rate_state['count'] ?? 0) === 2, 'pre-limit copre invio e richiesta invalida senza penalizzare il replay');
-} catch (Throwable $error) {
-	$corsivo_forms_test_failure = $error;
-} finally {
-	if ($corsivo_forms_test_admin_email_filter !== null) {
-		remove_filter('pre_option_admin_email', $corsivo_forms_test_admin_email_filter, PHP_INT_MAX);
-	}
-
 	$file_form_attributes = [
 		'values' => [
 			'form_title'      => 'File E2E test',
@@ -1912,6 +1911,13 @@ try {
 			&& $mail_calls === $file_mail_calls_before + 1,
 		'stessa request_id con contenuto file diverso restituisce conflitto senza duplicazioni'
 	);
+} catch (Throwable $error) {
+	$corsivo_forms_test_failure = $error;
+} finally {
+	if ($corsivo_forms_test_admin_email_filter !== null) {
+		remove_filter('pre_option_admin_email', $corsivo_forms_test_admin_email_filter, PHP_INT_MAX);
+	}
+
 	if ($corsivo_forms_test_ttl_filter !== null) {
 		remove_filter('corsivo_forms_form_token_ttl', $corsivo_forms_test_ttl_filter, PHP_INT_MAX);
 	}

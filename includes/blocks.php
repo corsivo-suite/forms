@@ -70,6 +70,17 @@ function corsivo_forms_form_schema() {
 				'default' => true,
 			],
 		]],
+		['scope' => 'inspector', 'panel' => 'Notifiche condizionali', 'fields' => [
+			'notification_rules' => [
+				'type' => 'repeater', 'label' => 'Regole di notifica', 'previewKey' => 'label', 'default' => [], 'max' => 10,
+				'description' => 'La prima regola corrispondente sostituisce destinatari e oggetto della notifica. Se nessuna corrisponde, si usa la notifica email standard. L’ordine conta.',
+				'fields' => array_merge([
+					'label' => ['type' => 'text', 'label' => 'Nome della regola', 'default' => ''],
+					'recipients' => ['type' => 'text', 'label' => 'Destinatari', 'default' => '', 'description' => 'Indirizzi separati da virgola, autorizzati nelle impostazioni di Forms.'],
+					'subject' => ['type' => 'text', 'label' => 'Oggetto', 'default' => '', 'description' => 'Supporta {chiave}. Se vuoto, usa l’oggetto standard.'],
+				], corsivo_forms_condition_schema(true)),
+			],
+		]],
 	];
 }
 
@@ -276,7 +287,8 @@ function corsivo_forms_render_form($attributes, $content, $wp_block = null) {
 		);
 		$feedback = '<p class="corsivo-form-form__feedback is-error" role="alert" aria-live="polite" tabindex="-1">' . esc_html($error->get_error_message()) . '</p>';
 	} else {
-		$payload = wp_json_encode(['token' => $token, 'formId' => $definition['form_id']]);
+		$client_fields = array_map(static fn($field) => array_intersect_key($field, array_flip(['type', 'name', 'values'])), $definition['fields']);
+		$payload = wp_json_encode(['token' => $token, 'formId' => $definition['form_id'], 'fields' => $client_fields]);
 		$feedback = '<p class="corsivo-form-form__feedback" role="status" aria-live="polite" tabindex="-1"></p>';
 	}
 

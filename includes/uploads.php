@@ -72,7 +72,11 @@ function corsivo_forms_upload_field_name($name) {
 function corsivo_forms_upload_original_name($name) {
 	$name = str_replace('\\', '/', (string) $name);
 	$name = sanitize_file_name(wp_basename($name));
-	return substr($name, 0, 180);
+	$extension = pathinfo($name, PATHINFO_EXTENSION);
+	$suffix = $extension !== '' ? '.' . $extension : '';
+	$basename = $suffix !== '' ? substr($name, 0, -strlen($suffix)) : $name;
+	$limit = max(1, 180 - strlen($suffix));
+	return (function_exists('mb_strcut') ? mb_strcut($basename, 0, $limit, 'UTF-8') : substr($basename, 0, $limit)) . $suffix;
 }
 
 function corsivo_forms_upload_array_value_at_path($value, array $path, &$found) {
@@ -220,6 +224,29 @@ function corsivo_forms_request_upload_identity(WP_REST_Request $request) {
 	}
 
 	return $identity;
+}
+
+function corsivo_forms_unverified_upload_identity($value, $temporary_paths = false) {
+	if (is_array($value)) {
+		if (!array_is_list($value)) {
+			ksort($value, SORT_STRING);
+		}
+		$identity = [];
+		foreach ($value as $key => $child) {
+			$identity[$key] = corsivo_forms_unverified_upload_identity($child, $temporary_paths || $key === 'tmp_name');
+		}
+		return $identity;
+	}
+	if (!$temporary_paths) {
+		return is_scalar($value) || $value === null ? $value : null;
+	}
+	if (is_string($value) && $value !== '' && is_file($value) && !is_link($value) && is_readable($value)) {
+		$hash = hash_file('sha256', $value);
+		if (is_string($hash)) {
+			return ['sha256' => $hash];
+		}
+	}
+	return ['unavailable' => true];
 }
 
 function corsivo_forms_upload_error($code, $message, $field_name, $status = 400) {
@@ -1369,6 +1396,5 @@ function corsivo_forms_uninstall_upload_storage() {
 	}
 	return true;
 }
-
 
 

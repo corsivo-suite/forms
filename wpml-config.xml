@@ -8,30 +8,61 @@
 				<key name="form_title" />
 				<key name="subject" />
 				<key name="success_message" />
+				<key name="notification_rules">
+					<key name="*">
+						<key name="label" />
+						<key name="subject" />
+						<key name="conditions">
+							<key name="*">
+								<key name="value" />
+							</key>
+						</key>
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-text" translate="1">
 			<key name="values">
 				<key name="label" />
 				<key name="placeholder" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-email" translate="1">
 			<key name="values">
 				<key name="label" />
 				<key name="placeholder" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-tel" translate="1">
 			<key name="values">
 				<key name="label" />
 				<key name="placeholder" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-textarea" translate="1">
 			<key name="values">
 				<key name="label" />
 				<key name="placeholder" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-select" translate="1">
@@ -43,16 +74,31 @@
 						<key name="option" />
 					</key>
 				</key>
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-file" translate="1">
 			<key name="values">
 				<key name="label" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-checkbox" translate="1">
 			<key name="values">
 				<key name="label" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 		<gutenberg-block type="corsivo/form-privacy" translate="1">
@@ -64,6 +110,41 @@
 		<gutenberg-block type="corsivo/form-submit" translate="1">
 			<key name="values">
 				<key name="label" />
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-number" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-date" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
+			</key>
+		</gutenberg-block>
+		<gutenberg-block type="corsivo/form-radio" translate="1">
+			<key name="values">
+				<key name="label" />
+				<key name="options">
+					<key name="*">
+						<key name="option" />
+					</key>
+				</key>
+				<key name="conditions">
+					<key name="*">
+						<key name="value" />
+					</key>
+				</key>
 			</key>
 		</gutenberg-block>
 	</gutenberg-blocks>

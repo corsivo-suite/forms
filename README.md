@@ -19,17 +19,32 @@ Il blocco `corsivo/form` (registrato in PHP tramite Define Blocks, dipendenza ob
 | `corsivo/form-tel` | telefono | |
 | `corsivo/form-textarea` | testo lungo | max 5000 caratteri |
 | `corsivo/form-select` | scelta | opzioni deduplicate, valore verificato server-side |
+| `corsivo/form-number` | numero | valori finiti, minimo, massimo e incremento configurabili |
+| `corsivo/form-date` | data | calendario ISO `YYYY-MM-DD`, minimo e massimo inclusivi |
+| `corsivo/form-radio` | scelta singola | gruppo accessibile con `fieldset` e `legend`; opzioni verificate server-side |
 | `corsivo/form-file` | file singolo o multiplo | archivio obbligatorio; formati, quantità e dimensione configurabili |
 | `corsivo/form-checkbox` | spunta | accetta solo valore esplicito |
 | `corsivo/form-privacy` | consenso | sempre obbligatorio, con link all'informativa |
 
+### Condizioni dei campi
+
+Nell’inspector ogni campo, salvo il consenso privacy, può avere fino a 10 condizioni, combinate con `all` (tutte, default) oppure `any` (almeno una). La sorgente si indica attraverso la chiave canonica del campo: per collegare campi assegna una `field_key` esplicita, stabile e univoca. La posizione dei blocchi non determina l’ordine di valutazione delle dipendenze.
+
+Gli operatori sono `equal`, `not_equal`, `contains`, `not_contains`, `is_empty`, `is_not_empty`, `greater`, `greater_or_equal`, `less` e `less_or_equal`. I confronti ordinati sono disponibili per numeri e date; quelli di contenimento per campi testuali e scelte. File e privacy non possono essere sorgenti di condizioni. Riferimenti mancanti, riferimenti a sé stessi e cicli rendono invalida la configurazione; una sorgente nascosta non può attivare i campi dipendenti, nemmeno con `is_empty` o `not_equal`.
+
+Il frontend disabilita i controlli nascosti e li esclude da `FormData`, validazione ed errori. Il server risolve autonomamente gli stessi vincoli: ignora valori e upload dei campi noti ma nascosti, anche se inviati manualmente, e li esclude da archivio, notifiche, Reply-To e action delle integrazioni. I file associati a chiavi sconosciute restano rifiutati. Il consenso privacy resta sempre visibile e obbligatorio. Valori numerici non finiti, date inesistenti e opzioni estranee alla configurazione non sono sorgenti valide.
+
+Le condizioni vuote e i nuovi attributi ai valori predefiniti non alterano la definizione normalizzata dei form precedenti: identità e token già emessi restano compatibili finché non cambia la configurazione effettiva.
+
 ### Token
 
-Al render la definizione completa — impostazioni, campi con evidenza della privacy policy (URL, ID, hash SHA-256 del contenuto, data di modifica), pagina, lingua, modalità sorgente — viene cifrata in un token AES-256-GCM con chiave derivata dai salt di WordPress e contesto network/blog: nulla della configurazione è esposto al client. La sorgente viene classificata (`post`; `template` con catena di hash di template, template part e blocchi riutilizzabili; `rendered` come fallback) e il TTL è 1 giorno per `rendered`, 90 giorni per `post`/`template` (filtro `corsivo_forms_form_token_ttl`). Questo consente il form anche in template FSE, template part, pattern sincronizzati e Query Loop. A ogni submit la sorgente viene riverificata: se il post non contiene più quel form, la catena template ha hash diversi o l'informativa privacy è cambiata, il token è revocato (`form_changed`, `privacy_policy_changed`); cambiare la lingua della pagina lo invalida (`form_language_changed`).
+I destinatari impostati nei blocchi devono appartenere all'elenco **Destinatari autorizzati** nelle impostazioni generali. L'indirizzo amministrativo del sito è sempre ammesso; gli altri indirizzi, anche di form già esistenti, vanno aggiunti esplicitamente. Il filtro PHP `corsivo_forms_allowed_recipients` può estendere l'elenco da codice fidato. La possibilità di modificare una pagina non consente quindi di usare il sito per inviare notifiche a destinatari arbitrari.
+
+Al render la definizione completa — impostazioni, campi con evidenza della privacy policy (URL, ID, hash SHA-256 del contenuto, data di modifica), pagina, lingua, modalità sorgente — viene cifrata in un token AES-256-GCM con chiave derivata dai salt di WordPress e contesto network/blog: destinatari e impostazioni di notifica restano nel token cifrato. Le definizioni dei campi e le condizioni sono esposte al client per la gestione dell’interfaccia; il server le rivaluta dalla definizione autenticata. La sorgente viene classificata (`post`; `template` con catena di hash di template, template part e blocchi riutilizzabili; `rendered` come fallback) e il TTL è 1 giorno per `rendered`, 90 giorni per `post`/`template` (filtro `corsivo_forms_form_token_ttl`). Questo consente il form anche in template FSE, template part, pattern sincronizzati e Query Loop. A ogni submit la sorgente viene riverificata: se il post non contiene più quel form, la catena template ha hash diversi o l'informativa privacy è cambiata, il token è revocato (`form_changed`, `privacy_policy_changed`); cambiare la lingua della pagina lo invalida (`form_language_changed`).
 
 ### Render
 
-Il markup include honeypot (`corsivo_forms_hp`), feedback `aria-live` e un avviso "JavaScript necessario": il pulsante resta `type="button"` finché lo script frontend non lo attiva, quindi non esiste un percorso di invio senza JS. Un campo file espone `accept`, `multiple` e la descrizione accessibile dei limiti, ma questi attributi sono solo UX: il contratto viene sempre applicato dal server. Se la configurazione è invalida il form viene reso disabilitato con l'errore esplicito: destinatari malformati, select obbligatoria senza opzioni, campo privacy senza informativa pubblicata, oltre 50 campi, struttura troppo profonda, submit mancante, OpenSSL assente, campo file senza formati, archivio disattivato in presenza di file o storage privato non attestabile.
+Il markup include honeypot (`corsivo_forms_hp`), feedback `aria-live` e un avviso "JavaScript necessario": il pulsante resta `type="button"` finché lo script frontend non lo attiva, quindi non esiste un percorso di invio senza JS. Un campo file espone `accept`, `multiple` e la descrizione accessibile dei limiti, ma questi attributi sono solo UX: il contratto viene sempre applicato dal server. Se la configurazione è invalida il form viene reso disabilitato con l'errore esplicito: destinatari malformati, select obbligatoria o radio senza opzioni, condizioni o regole di notifica invalide, campo privacy senza informativa pubblicata, oltre 50 campi, struttura troppo profonda, submit mancante, OpenSSL assente, campo file senza formati, archivio disattivato in presenza di file o storage privato non attestabile.
 
 ### Submit
 
@@ -45,6 +60,10 @@ Lo script invia `multipart/form-data` a `POST /wp-json/corsivo/v1/forms/submit` 
 8. archiviazione (se attiva), notifica, action `corsivo_forms_submission`, aggiornamento del record e persistenza della risposta per i replay futuri.
 
 Un claim rimasto `processing` oltre il timeout (5 minuti, filtro `corsivo_forms_processing_timeout`) viene marcato `unknown` e reso ritentabile con esito esplicito; il replay di una risposta persa funziona anche a token scaduto.
+
+I limiti per client raggruppano gli IPv6 nella stessa rete /64 e usano una finestra a scadenza fissa sotto lock. Prima di archiviare gli upload viene consumato anche un budget condiviso di 250 MiB per 24 ore, configurabile con `corsivo_forms_daily_upload_budget`: cambiare IP o riutilizzare un token valido non elude questo limite. Dietro proxy fidati, l'integrazione server deve risolvere l'indirizzo tramite `corsivo_forms_client_ip`; gli header inoltrati non vengono considerati affidabili automaticamente.
+
+Dopo una modifica dell'informativa, le pagine in cache devono essere rigenerate: un token riferito alla vecchia policy continua correttamente a produrre `privacy_policy_changed`. Dopo una migrazione, lo storage privato deve essere nuovamente verificabile prima di cancellare file; percorsi senza attestazione non vengono adottati automaticamente.
 
 ### Archiviazione
 
@@ -67,6 +86,8 @@ Il ciclo di vita dei file coincide con quello della submission. Eliminazione def
 ### Notifiche
 
 Destinatari dalla configurazione (max 10, deduplicati case-insensitive; vuoto = email amministratore), oggetto con merge `{chiave}`, Reply-To composto da campo email e campo `sender_name`. Il trasporto preferito è Corsivo Mail (provider template `corsivo_forms_form`, merge tag tra cui `{{fields_html}}`, `{{field_chiave}}` e `{{field_chiave_url}}`), con fallback per destinatario a `wp_mail()` HTML. L'esito è registrato per submission: `accepted`, `partial`, `failed`, `pending`. I valori nei merge sono sanitizzati contro header/attribute injection e protocolli pericolosi anche offuscati con entità HTML; per i campi file il valore è la sola lista dei nomi originali.
+
+Le regole di notifica del blocco form (`notification_rules`, massimo 10) usano le stesse condizioni e modalità `all`/`any` dei campi. La prima regola corrispondente sostituisce destinatari e oggetto della notifica standard; in assenza di corrispondenze resta la configurazione standard. Le regole hanno destinatari statici, verificati contro l’allowlist corrente anche dopo l’emissione del token: nessun valore inserito nel form può diventare un destinatario. Le risposte dei campi nascosti non attivano regole. L’esito della notifica e il replay idempotente conservano il contratto esistente.
 
 ### Attività, retention e cron
 
@@ -94,22 +115,28 @@ Lo schema della tabella attività è current-only: installazione fresh-only a du
 - **Corsivo Mail** — opzionale e disattivabile dalla tab Integrazioni: Forms registra il provider `corsivo_forms_form` via filtro `corsivo_mail_core_emails` e consegna con `corsivo_mail_deliver()`; senza template disponibile usa `wp_mail()` senza coinvolgere la coda globale.
 - **Corsivo Privacy** — opzionale e disattivabile: il campo consenso usa la pagina policy da `corsivo_privacy_get_pages_state()` con risoluzione della lingua corrente; in assenza vale la privacy policy nativa di WordPress (`wp_page_for_privacy_policy`).
 - **Corsivo Newsletter** — ascolta l'action `corsivo_forms_submission($submission, $clean, $submission_id)`: se la submission contiene un campo spuntato con chiave `newsletter` e un'email mittente, iscrive il contatto con evidenza di consenso. Forms non carica né conosce codice Newsletter; un'eccezione nell'integrazione viene isolata e registrata senza far fallire la submission.
-- **WPML** — `wpml-config.xml` espone alla traduzione solo label, placeholder, opzioni, oggetto, messaggio di conferma e testi del campo privacy; `corsivo_submission` non è traducibile. La lingua della submission è risolta per pagina (`wpml_post_language_details`) e registrata nella richiesta.
+- **WPML** — `wpml-config.xml` espone alla traduzione label, placeholder, opzioni, valori attesi nelle condizioni, oggetti delle notifiche, messaggio di conferma e testi del campo privacy; le chiavi dei campi restano non traducibili e i valori attesi per select/radio vanno tradotti insieme alle rispettive opzioni; `corsivo_submission` non è traducibile. La lingua della submission è risolta per pagina (`wpml_post_language_details`) e registrata nella richiesta.
 - **Filtri per l'estensione:** `corsivo_forms_form_definition`, `corsivo_forms_allow_post`, `corsivo_forms_is_public_render_context`, `corsivo_forms_submission_language`, più i filtri di rate limit (`corsivo_forms_rate_limit`/`_window`, varianti `validation` e `preflight`) e TTL citati sopra.
 
 ## Test
 
-```
+```sh
+cd wp-content/plugins/corsivo-forms
+npm --prefix admin-app ci
+npm run check
+npm run package
 wp eval-file wp-content/plugins/corsivo-forms/tests/run.php
-php wp-content/plugins/corsivo-forms/tests/storage-static.php
-php wp-content/plugins/corsivo-forms/tests/admin-dataviews-static.php
+wp eval-file wp-content/plugins/corsivo-forms/tests/extension-wordpress.php
 wp eval-file wp-content/plugins/corsivo-forms/tests/admin-dataviews-wordpress.php
-cd wp-content/plugins/corsivo-forms/admin-app && npm run lint:js && npm run test:unit && npm run build
 ```
 
-`run.php` (stile TAP, exit code 1 al primo fallimento) copre: normalizzazione di impostazioni e campi, validazione, ciclo di vita del token, destinatari e merge anti-injection, redazione del registro, claim/replay/conflitti/claim interrotti, storage submission con compensazione, retention, exporter/eraser, cicli di blocchi riutilizzabili e un E2E REST con i tre budget di rate limit. I casi upload verificano schema/render del blocco, multipart singolo e multiplo, allowlist estensione/MIME e contenuto, limiti per file/campo/request, fingerprint binario e conflitto idempotente, storage fuori webroot con marker plain, metadati e hash, compensazione, download autorizzato, privacy/retention e uninstall multisite fail-closed. Il runner ripristina hook, post, file e directory temporanee, opzioni e chiavi di throttling create.
+`run.php` (stile TAP, exit code 1 in presenza di fallimenti) copre: normalizzazione di impostazioni e campi, validazione, ciclo di vita del token, destinatari e merge anti-injection, redazione del registro, claim/replay/conflitti/claim interrotti, storage submission con compensazione, retention, exporter/eraser, cicli di blocchi riutilizzabili e un E2E REST con i tre budget di rate limit. I casi upload verificano schema/render del blocco, multipart singolo e multiplo, allowlist estensione/MIME e contenuto, limiti per file/campo/request, fingerprint binario e conflitto idempotente, storage fuori webroot con marker plain, metadati e hash, compensazione, download autorizzato, privacy/retention e uninstall multisite fail-closed. Il runner ripristina hook, post, file e directory temporanee, opzioni e chiavi di throttling create.
 
 `storage-static.php` (PHP diretto, senza WordPress) fa guardie statiche sul contratto storage current-only: vieta `dbDelta` e `ALTER TABLE`, richiede installazione a due fasi con lock e verifica fisica dello schema.
+
+`npm run check` esegue lint JavaScript, regressioni JavaScript e PHP isolate, quindi la build amministrativa. `extension-regressions.php` verifica nuovi tipi, grafo delle condizioni, instradamento e compatibilità delle definizioni; le fixture condivise verificano la coerenza tra valutazione PHP e frontend. `extension-wordpress.php` esercita le estensioni nel runtime WordPress con notifiche simulate e ripristino delle fixture.
+
+`npm run package` crea lo ZIP con un’allowlist esplicita: include asset pubblici, build amministrativa, PHP, configurazione WPML e documentazione; esclude dipendenze di sviluppo, sorgenti amministrativi e suite di test. Le verifiche WordPress vanno eseguite dalla root del sito usando i percorsi mostrati sopra; i comandi npm dalla root del plugin.
 
 ## Configurazione
 
@@ -124,13 +151,13 @@ Pagina `Strumenti → Corsivo Forms`, tab Attività (DataViews con ricerca, filt
 | `corsivo_mail_enabled` | `true` | usa Corsivo Mail se disponibile |
 | `corsivo_privacy_enabled` | `true` | usa la policy di Corsivo Privacy se disponibile |
 
-Limiti fissi rilevanti: body multipart 27 MB, massimo 25 MB di file e 10 file complessivi per request, massimo configurabile di 10 file per campo e 20 MB per file, 50 campi per form, 10 destinatari, testo 500 caratteri (textarea 5000), token max ~48 KB. I payload non multipart restano limitati a 2 MB. `upload_max_filesize`, `post_max_size` e altri limiti PHP/server possono ridurre questi valori. Il testo suggerito per la privacy policy del sito (`wp_add_privacy_policy_content`) riflette retention e presenza dei file. Requisiti: WordPress 6.6+, PHP 8.1+, estensione OpenSSL, Define Blocks attivo; `ZipArchive` è necessario per accettare DOCX, XLSX, ODT e ODS. Multisito supportato (attivazione, cleanup e uninstall per sito). Distribuito dal canale privato `plugins.corsivo.dev` tramite Corsivo Updater; licenza GPL-2.0-or-later (vedi `LICENSE`).
+Limiti fissi rilevanti: body multipart 27 MB, massimo 25 MB di file e 10 file complessivi per request, massimo configurabile di 10 file per campo e 20 MB per file, 50 campi per form, 10 destinatari, 10 condizioni per campo o regola e 10 regole di notifica, testo 500 caratteri (textarea 5000), token max ~48 KB. I payload non multipart restano limitati a 2 MB. `upload_max_filesize`, `post_max_size` e altri limiti PHP/server possono ridurre questi valori. Il testo suggerito per la privacy policy del sito (`wp_add_privacy_policy_content`) riflette retention e presenza dei file. Requisiti: WordPress 6.6+, PHP 8.1+, estensione OpenSSL, Define Blocks attivo; `ZipArchive` è necessario per accettare DOCX, XLSX, ODT e ODS. Multisito supportato (attivazione, cleanup e uninstall per sito). Distribuito dal canale privato `plugins.corsivo.dev` tramite Corsivo Updater; licenza GPL-2.0-or-later (vedi `LICENSE`).
 
 `CORSIVO_FORMS_PRIVATE_DIR` non è un’opzione amministrativa: se definita, deve contenere una directory assoluta dedicata e fuori dai webroot. Il plugin non sposta automaticamente i file quando cambia il percorso; la configurazione deve quindi essere stabilita prima dell’uso dei campi file.
 
 ## Bootstrap, lifecycle, sicurezza e build
 
-Il bootstrap `corsivo-forms.php` carica anche `includes/uploads.php` e registra l’attivazione; Define Blocks resta la dipendenza obbligatoria. `init` registra blocchi e CPT submission, `rest_api_init` espone il submit anonimo e la collection attività riservata a `manage_options`, `plugins_loaded`/`admin_init` verificano l’activity storage e il render di un form file attesta lazy lo storage privato. L’attivazione crea la tabella attività per ogni sito; la disattivazione rimuove i cron ma conserva submission e file. `uninstall.php` cancella dati e storage privato soltanto con l’opt-in. Gli altri ingressi sono render callback, admin-post per pulizia e download file, privacy exporter/eraser e cron; non esistono AJAX o CLI. `admin-app/` compila DataViews e WP Admin UI nel bundle distribuibile, senza dipendenze runtime dal plugin showcase. React 18.3.1 e React DOM 18.3.1 sono dipendenze esclusivamente di sviluppo per risolvere i peer del package; la build li lascia esterni e usa gli handle React/Element registrati da WordPress a runtime. La route pubblica usa token cifrato, same-origin, honeypot, rate limit, fingerprint e idempotenza; download, collection e mutazioni amministrative usano capability e nonce WordPress. Limiti: niente CAPTCHA, invio senza JavaScript o form CPT; storage current-only senza percorsi legacy o migrazioni implicite.
+Il bootstrap `corsivo-forms.php` carica anche `includes/uploads.php` e registra l’attivazione; Define Blocks resta la dipendenza obbligatoria. `init` registra blocchi e CPT submission, `rest_api_init` espone il submit anonimo e la collection attività riservata a `manage_options`, `plugins_loaded`/`admin_init` verificano l’activity storage e il render di un form file attesta lazy lo storage privato. L’attivazione crea la tabella attività per ogni sito; la disattivazione rimuove i cron ma conserva submission e file. `uninstall.php` cancella dati e storage privato soltanto con l’opt-in. Gli altri ingressi sono render callback, admin-post per pulizia e download file, privacy exporter/eraser e cron; non esistono AJAX o CLI. `admin-app/` compila DataViews e WP Admin UI nel bundle distribuibile, senza dipendenze runtime dal plugin showcase. React 18.3.1 e React DOM 18.3.1 sono dipendenze esclusivamente di sviluppo per risolvere i peer del package; la build li lascia esterni e usa gli handle React/Element registrati da WordPress a runtime. La route pubblica usa token cifrato, same-origin, honeypot, rate limit, fingerprint e idempotenza; download, collection e mutazioni amministrative usano capability e nonce WordPress. Limiti: niente CAPTCHA, invio senza JavaScript, form multipagina o form CPT; storage current-only senza percorsi legacy o migrazioni implicite.
 
 ## Inventario completo dei file
 
@@ -146,8 +173,9 @@ Ogni percorso è relativo alla root del plugin. `admin-app/node_modules/` resta 
 - `includes/activity-storage.php` — DDL tabella activity, inventory fisico, marker/intent, lock e verifica current-only.
 - `includes/activity.php` — claim idempotenti, response envelope, redazione, query/purge e handler clear del registro.
 - `includes/blocks.php` — schema Define Blocks, render form/campi, traversal di reusable/template e registrazione asset.
+- `includes/conditions.php` — normalizzazione, validazione del grafo, visibilità dei campi e selezione delle notifiche condizionali.
 - `includes/editor.php` — categoria blocchi, estensione inspector Define Blocks e CSS della preview editor.
-- `includes/fields.php` — registry degli otto field type, schema e render accessibile del campo file, default e validazione server-side.
+- `includes/fields.php` — registry degli undici tipi di campo, schema, render accessibile, limiti e validazione server-side.
 - `includes/mail.php` — provider Corsivo Mail, merge sicuri, destinatari/Reply-To e fallback `wp_mail()` per recipient.
 - `includes/privacy.php` — exporter/eraser, metadati upload, policy text, retention coordinata di submission/file e cron cleanup a batch.
 - `includes/settings.php` — option unica, tab amministrative, enqueue della build e collection REST dell’attività.
@@ -156,6 +184,10 @@ Ogni percorso è relativo alla root del plugin. `admin-app/node_modules/` resta 
 - `includes/token.php` — normalizzazione definizione, evidenza policy, source chain e token AES-256-GCM con revoca.
 - `includes/uploads.php` — registry estensioni/MIME, parsing multipart, validazione contenuto, storage privato attestato, metadati, compensazione, download, privacy e cleanup/uninstall multisite.
 - `LICENSE` — testo della licenza GPL-2.0-or-later.
+- `package.json` — pipeline di lint, test, build e allowlist del pacchetto distribuibile.
+- `tests/extension-regressions.php` — regressioni isolate sui nuovi tipi, condizioni, notifiche e definizioni precedenti.
+- `tests/conditions-fixtures.json` — casi condivisi per la valutazione delle condizioni PHP e JavaScript.
+- `tests/extension-wordpress.php` — regressioni nel runtime WordPress con invii simulati e pulizia delle fixture.
 - `tests/run.php` — suite TAP WordPress su token, validazione, submit E2E, upload multipart/storage/download, idempotenza, mail, retention e privacy.
 - `tests/storage-static.php` — guardia PHP diretta sul blueprint, installazione fresh-only, lock e verifica fisica.
 - `tests/admin-dataviews-static.php` — guardia su versioni package, capability, handler di pulizia e completezza degli asset admin.

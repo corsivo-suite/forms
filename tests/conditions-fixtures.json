@@ -1,0 +1,193 @@
+[
+  {
+    "name": "numeric ordering and zero",
+    "fields": [
+      {"type":"number","name":"amount","values":{"step":"any"}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"amount","operator":"greater_or_equal","value":"0"}]}}
+    ],
+    "values":{"amount":"0"},
+    "active":["amount","details"]
+  },
+  {
+    "name": "numeric equality uses numeric value",
+    "fields": [
+      {"type":"number","name":"amount","values":{"step":"any"}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"amount","operator":"equal","value":"1.50"}]}}
+    ],
+    "values":{"amount":"1.5"},
+    "active":["amount","details"]
+  },
+  {
+    "name": "malformed number cannot satisfy negative match",
+    "fields": [
+      {"type":"number","name":"amount","values":{"step":"any"}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"amount","operator":"not_equal","value":"10"}]}}
+    ],
+    "values":{"amount":"10<script>"},
+    "active":["amount"]
+  },
+  {
+    "name": "calendar comparison",
+    "fields": [
+      {"type":"date","name":"arrival","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"arrival","operator":"less","value":"2027-01-01"}]}}
+    ],
+    "values":{"arrival":"2026-10-13"},
+    "active":["arrival","details"]
+  },
+  {
+    "name": "impossible calendar date is not an empty source",
+    "fields": [
+      {"type":"date","name":"arrival","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"arrival","operator":"is_empty","value":""}]}}
+    ],
+    "values":{"arrival":"2026-02-30"},
+    "active":["arrival"]
+  },
+  {
+    "name": "hidden source never activates a descendant",
+    "fields": [
+      {"type":"checkbox","name":"enabled","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"enabled","operator":"equal","value":"1"}]}},
+      {"type":"text","name":"followup","values":{"conditions":[{"field":"details","operator":"is_empty","value":""}]}}
+    ],
+    "values":{"enabled":"0","details":""},
+    "active":["enabled"]
+  },
+  {
+    "name": "any mode and valid unchecked checkbox",
+    "fields": [
+      {"type":"checkbox","name":"enabled","values":{}},
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"condition_mode":"any","conditions":[{"field":"enabled","operator":"equal","value":"1"},{"field":"reason","operator":"contains","value":"help"}]}}
+    ],
+    "values":{"reason":"I need help"},
+    "active":["enabled","reason","details"]
+  },
+  {
+    "name": "unexpected scalar shape cannot satisfy empty condition",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"is_empty","value":""}]}}
+    ],
+    "values":{"reason":["forged"]},
+    "active":["reason"]
+  },
+  {
+    "name": "radio selection must belong to available options",
+    "fields": [
+      {"type":"radio","name":"topic","values":{"options":[{"option":"Sales"},{"option":"Support"}]}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"topic","operator":"not_equal","value":"Sales"}]}}
+    ],
+    "values":{"topic":"Forged"},
+    "active":["topic"]
+  },
+  {
+    "name": "source numeric bounds also apply before evaluation",
+    "fields": [
+      {"type":"number","name":"amount","values":{"min":"1","max":"10","step":"any"}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"amount","operator":"greater","value":"5"}]}}
+    ],
+    "values":{"amount":"11"},
+    "active":["amount"]
+  },
+  {
+    "name": "text comparisons use the sanitized submitted value",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"equal","value":"Need help"}]}}
+    ],
+    "values":{"reason":" <b>Need</b>   help%20 "},
+    "active":["reason","details"]
+  },
+  {
+    "name": "optional empty numeric source",
+    "fields": [
+      {"type":"number","name":"amount","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"amount","operator":"is_empty","value":""}]}}
+    ],
+    "values":{"amount":""},
+    "active":["amount","details"]
+  },
+  {
+    "name": "percent escapes are removed with the core replacement algorithm",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"equal","value":"%2"}]}}
+    ],
+    "values":{"reason":"%2%30"},
+    "active":["reason","details"]
+  },
+  {
+    "name": "quoted tag attributes do not leak into text",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"equal","value":"Need"}]}}
+    ],
+    "values":{"reason":"<b title=\">\">Need</b>"},
+    "active":["reason","details"]
+  },
+  {
+    "name": "unfinished tags use core less than escaping",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"equal","value":"before &lt;unfinished"}]}}
+    ],
+    "values":{"reason":"before <unfinished"},
+    "active":["reason","details"]
+  },
+  {
+    "name": "mathematical less than expressions are preserved",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"equal","value":"2 < 3 > 1"}]}}
+    ],
+    "values":{"reason":"2 < 3 > 1"},
+    "active":["reason","details"]
+  },
+  {
+    "name": "single line fields collapse newlines",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"equal","value":"Acme help"}]}}
+    ],
+    "values":{"reason":"Acme\n  help"},
+    "active":["reason","details"]
+  },
+  {
+    "name": "script contents are removed along with their tags",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"equal","value":"Acme"}]}}
+    ],
+    "values":{"reason":"<script>unsafe</script>Acme"},
+    "active":["reason","details"]
+  },
+  {
+    "name": "recursive percent escapes follow core replacement passes",
+    "fields": [
+      {"type":"text","name":"reason","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"reason","operator":"is_empty","value":""}]}}
+    ],
+    "values":{"reason":"%2%300"},
+    "active":["reason","details"]
+  },
+  {
+    "name": "email substring compares a fragment while validating the source email",
+    "fields": [
+      {"type":"email","name":"email","values":{}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"email","operator":"contains","value":"example.test"}]}}
+    ],
+    "values":{"email":"person@example.test"},
+    "active":["email","details"]
+  },
+  {
+    "name": "radio substring compares a fragment while validating source selection",
+    "fields": [
+      {"type":"radio","name":"topic","values":{"options":[{"option":"Sales"},{"option":"Support"}]}},
+      {"type":"text","name":"details","values":{"conditions":[{"field":"topic","operator":"contains","value":"Supp"}]}}
+    ],
+    "values":{"topic":"Support"},
+    "active":["topic","details"]
+  }
+]

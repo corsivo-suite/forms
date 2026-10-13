@@ -8,13 +8,49 @@ function corsivo_forms_normalize_form_settings(array $settings) {
 	$defaults = corsivo_forms_schema_defaults(corsivo_forms_form_schema());
 	$settings = array_merge($defaults, $settings);
 
-	return [
+	$normalized = [
 		'form_title'     => corsivo_forms_limit_text(sanitize_text_field((string) $settings['form_title']), 190),
 		'recipients'     => corsivo_forms_limit_text(sanitize_text_field((string) $settings['recipients']), 1000),
 		'subject'        => corsivo_forms_limit_text(sanitize_text_field((string) $settings['subject']), 250),
 		'success_message' => corsivo_forms_limit_text(sanitize_textarea_field((string) $settings['success_message']), 1000),
 		'store'          => corsivo_forms_sanitize_boolean_setting($settings['store']),
 	];
+	$rules = corsivo_forms_normalize_notification_rules(array_key_exists('notification_rules', $settings) ? $settings['notification_rules'] : []);
+	if (is_wp_error($rules) || !empty($settings['_notification_rules_error'])) {
+		$normalized['_notification_rules_error'] = is_wp_error($rules) ? $rules->get_error_code() : 'invalid_notification_rules';
+	} elseif ($rules) {
+		$normalized['notification_rules'] = $rules;
+	}
+	return $normalized;
+}
+
+function corsivo_forms_normalize_notification_rules($rules) {
+	if (!is_array($rules) || !array_is_list($rules) || count($rules) > 10) {
+		return corsivo_forms_condition_error('invalid_notification_rules');
+	}
+	$normalized = [];
+	foreach ($rules as $rule) {
+		if (!is_array($rule) || !is_string($rule['recipients'] ?? null) || trim($rule['recipients']) === '') {
+			return corsivo_forms_condition_error('invalid_notification_rules');
+		}
+		foreach (['label', 'subject'] as $key) {
+			if (isset($rule[$key]) && !is_string($rule[$key])) {
+				return corsivo_forms_condition_error('invalid_notification_rules');
+			}
+		}
+		$conditions = corsivo_forms_normalize_conditions(array_key_exists('conditions', $rule) ? $rule['conditions'] : [], array_key_exists('condition_mode', $rule) ? $rule['condition_mode'] : 'all');
+		if (is_wp_error($conditions) || !$conditions['conditions']) {
+			return corsivo_forms_condition_error('invalid_notification_rules');
+		}
+		$normalized[] = [
+			'label' => corsivo_forms_limit_text(sanitize_text_field($rule['label'] ?? ''), 190),
+			'recipients' => corsivo_forms_limit_text(sanitize_text_field($rule['recipients']), 1000),
+			'subject' => corsivo_forms_limit_text(sanitize_text_field($rule['subject'] ?? ''), 250),
+			'condition_mode' => $conditions['condition_mode'],
+			'conditions' => $conditions['conditions'],
+		];
+	}
+	return $normalized;
 }
 
 function corsivo_forms_form_definition(array $form, $post_id = 0, array $render_source = []) {
@@ -142,6 +178,23 @@ function corsivo_forms_form_configuration_error(array $definition) {
 	if (empty($definition['has_submit'])) {
 		return new WP_Error('missing_submit', __('Il modulo non è disponibile: aggiungi un pulsante di invio.', 'corsivo-forms'), ['status' => 409]);
 	}
+	$condition_error = corsivo_forms_validate_condition_graph($fields);
+	if (is_wp_error($condition_error)) {
+		return $condition_error;
+	}
+	if (!empty($definition['settings']['_notification_rules_error'])) {
+		return corsivo_forms_condition_error('invalid_notification_rules');
+	}
+	$fields_by_name = array_column($fields, null, 'name');
+	foreach ($definition['settings']['notification_rules'] ?? [] as $rule) {
+		$references = corsivo_forms_validate_condition_references($rule['conditions'], $fields_by_name);
+		if (is_wp_error($references)) {
+			return $references;
+		}
+		if (function_exists('corsivo_forms_notification_recipients') && is_wp_error(corsivo_forms_notification_recipients($rule))) {
+			return new WP_Error('invalid_rule_recipients', __('Il modulo non è disponibile: autorizza tutti i destinatari delle regole di notifica.', 'corsivo-forms'), ['status' => 409]);
+		}
+	}
 	if ($file_fields && empty($definition['settings']['store'])) {
 		return new WP_Error('file_storage_required', __('Il modulo non è disponibile: i file richiedono l’archiviazione delle richieste.', 'corsivo-forms'), ['status' => 409]);
 	}
@@ -164,6 +217,12 @@ function corsivo_forms_form_configuration_error(array $definition) {
 		}
 	}
 	foreach ($fields as $field) {
+		if (function_exists('corsivo_forms_field_configuration_error')) {
+			$field_error = corsivo_forms_field_configuration_error($field);
+			if (is_wp_error($field_error)) {
+				return $field_error;
+			}
+		}
 		if (($field['type'] ?? '') === 'file' && empty($field['values']['allowed_extensions'])) {
 			return new WP_Error(
 				'file_extensions_missing',
@@ -171,7 +230,7 @@ function corsivo_forms_form_configuration_error(array $definition) {
 				['status' => 409]
 			);
 		}
-		if (($field['type'] ?? '') === 'select' && !empty($field['values']['required']) && !corsivo_forms_select_options((array) $field['values'])) {
+		if (in_array($field['type'] ?? '', ['select', 'radio'], true) && !empty($field['values']['required']) && !corsivo_forms_select_options((array) $field['values'])) {
 			return new WP_Error('empty_required_select', __('Il modulo non è disponibile: una scelta obbligatoria non contiene opzioni.', 'corsivo-forms'), ['status' => 409]);
 		}
 		if (($field['type'] ?? '') === 'privacy' && empty($field['policy_url'])) {

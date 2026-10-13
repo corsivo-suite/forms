@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Corsivo Forms
  * Description: Moduli di contatto nativi Gutenberg: componi il form a blocchi, ricevi le notifiche via Corsivo Mail e archivia le richieste in bacheca.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Requires Plugins: define-blocks
@@ -17,13 +17,14 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
-define('CORSIVO_FORMS_VERSION', '0.4.0');
+define('CORSIVO_FORMS_VERSION', '0.5.0');
 define('CORSIVO_FORMS_FILE', __FILE__);
 define('CORSIVO_FORMS_DIR', plugin_dir_path(__FILE__));
 define('CORSIVO_FORMS_URL', plugin_dir_url(__FILE__));
 
 require CORSIVO_FORMS_DIR . 'includes/settings.php';
 require CORSIVO_FORMS_DIR . 'includes/uploads.php';
+require CORSIVO_FORMS_DIR . 'includes/conditions.php';
 require CORSIVO_FORMS_DIR . 'includes/fields.php';
 require CORSIVO_FORMS_DIR . 'includes/blocks.php';
 require CORSIVO_FORMS_DIR . 'includes/token.php';

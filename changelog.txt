@@ -1,3 +1,24 @@
+= 0.5.0 — 13/10/2026 =
+* includes/fields.php, includes/blocks.php, assets/corsivo-forms.css: aggiunti campi numero con minimo/massimo/incremento, data con calendario ISO e limiti inclusivi, radio con gruppo accessibile e opzioni validate.
+* includes/conditions.php, includes/fields.php, includes/blocks.php, assets/corsivo-forms.js: condizioni dichiarative fino a 10 righe, combinazione all/any, dipendenze indipendenti dall’ordine dei blocchi e rifiuto di riferimenti mancanti, auto-riferimenti e cicli.
+* includes/submit.php, includes/uploads.php, includes/mail.php: campi nascosti esclusi da validazione, archivio, notifiche, Reply-To e integrazioni; upload di campi nascosti ignorati, chiavi file sconosciute rifiutate. Consenso privacy sempre visibile e obbligatorio.
+* includes/token.php, includes/mail.php: fino a 10 regole di notifica; la prima corrispondente sostituisce destinatari e oggetto, altrimenti resta la notifica standard. Destinatari statici verificati contro l’allowlist corrente.
+* includes/token.php, includes/fields.php: omissione di condizioni vuote e nuovi valori predefiniti per conservare identità e compatibilità dei token dei form precedenti.
+* includes/fields.php: conservati i valori esatti delle opzioni select e radio che contengono entità HTML letterali.
+* wpml-config.xml: traduzione coordinata di opzioni select/radio e valori attesi nelle condizioni; chiavi dei campi non traducibili.
+* tests/extension-regressions.php, tests/conditions-fixtures.json, tests/extension-wordpress.php, admin-app/src/frontend.test.js: regressioni dei nuovi campi, condizioni, instradamento e compatibilità, con fixture condivise PHP/JavaScript e notifiche simulate nel runtime WordPress.
+* package.json, admin-app/package.json, admin-app/package-lock.json, corsivo-forms.php: versione 0.5.0, pipeline di verifica e ZIP con allowlist completa; lock npm riallineato senza nuove librerie applicative.
+* tests/run.php: verifiche eseguite prima della pulizia delle fixture; README.md aggiornato su configurazione, compatibilità, test e distribuzione.
+* La release include anche gli interventi già documentati nelle sezioni del 25/09 e 01/08, conservate di seguito. I form multipagina restano fuori da questa release.
+
+= Non rilasciato — 25/09/2026 =
+* includes/settings.php, includes/mail.php: allowlist dei destinatari e distinzione tra valori testuali e HTML ammesso nei merge tag.
+* includes/submit.php: limiti con IPv6 /64, finestra fissa, lock database e budget condiviso upload di 250 MiB/24 ore.
+* includes/uploads.php: conservata l'estensione nella troncatura del nome file.
+* includes/fields.php: rimossa la chiave sortable priva di consumer.
+* tests/security-regressions.php, tests/run.php, README.md: regressioni, fixture e configurazione aggiornate.
+* Autorizzare nelle impostazioni gli indirizzi esterni già usati dai form. Regressioni isolate PHP 8.1/8.4 e cinque controlli statici superati; suite con fixture nel database del sito non eseguita. Conservati i controlli su informativa obsoleta e storage non attestato.
+
 = Unreleased — 01/08/2026 =
 * Migrata la tab Attività su `@corsivo-suite/wp-admin-dataviews` 0.1.0 con ricerca, filtri e paginazione REST; query PHP, capability `manage_options` e pulizia `admin-post` con nonce restano autoritative.
 * Preservato lo stato della vista nell’URL con compatibilità per i parametri precedenti; incluse admin-app compilata e suite JavaScript/PHP dedicata.

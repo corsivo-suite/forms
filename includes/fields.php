@@ -9,8 +9,11 @@ function corsivo_forms_field_types() {
 		'text'     => ['title' => 'Campo testo', 'icon' => 'editor-textcolor', 'keywords' => ['testo', 'input', 'nome']],
 		'email'    => ['title' => 'Campo email', 'icon' => 'email-alt', 'keywords' => ['email', 'posta', 'indirizzo']],
 		'tel'      => ['title' => 'Campo telefono', 'icon' => 'phone', 'keywords' => ['telefono', 'cellulare']],
+		'number'   => ['title' => 'Campo numero', 'icon' => 'editor-ol', 'keywords' => ['numero', 'quantità', 'importo']],
+		'date'     => ['title' => 'Campo data', 'icon' => 'calendar-alt', 'keywords' => ['data', 'giorno', 'calendario']],
 		'textarea' => ['title' => 'Area di testo', 'icon' => 'text', 'keywords' => ['messaggio', 'testo lungo']],
 		'select'   => ['title' => 'Campo a scelta', 'icon' => 'list-view', 'keywords' => ['select', 'menu', 'opzioni']],
+		'radio'    => ['title' => 'Scelta singola', 'icon' => 'marker', 'keywords' => ['radio', 'scelta', 'opzioni']],
 		'file'     => ['title' => 'Caricamento file', 'icon' => 'media-document', 'keywords' => ['file', 'allegato', 'upload']],
 		'checkbox' => ['title' => 'Casella di spunta', 'icon' => 'yes-alt', 'keywords' => ['checkbox', 'spunta', 'consenso']],
 		'privacy'  => ['title' => 'Consenso privacy', 'icon' => 'shield', 'keywords' => ['privacy', 'gdpr', 'informativa']],
@@ -42,8 +45,11 @@ function corsivo_forms_field_schema($type) {
 		'text'     => 'Nome',
 		'email'    => 'Email',
 		'tel'      => 'Telefono',
+		'number'   => 'Quantità',
+		'date'     => 'Data',
 		'textarea' => 'Messaggio',
 		'select'   => 'Motivo',
+		'radio'    => 'Scelta',
 		'file'     => 'Allegato',
 		'checkbox' => 'Casella di spunta',
 	];
@@ -59,7 +65,7 @@ function corsivo_forms_field_schema($type) {
 		$inspector['placeholder'] = ['type' => 'text', 'label' => 'Placeholder', 'default' => ''];
 	}
 
-	if ($type === 'select') {
+	if (in_array($type, ['select', 'radio'], true)) {
 		$content['options'] = [
 			'type'       => 'repeater',
 			'label'      => 'Opzioni',
@@ -69,7 +75,18 @@ function corsivo_forms_field_schema($type) {
 				'option' => ['type' => 'text', 'label' => 'Opzione'],
 			],
 		];
-		$inspector['placeholder'] = ['type' => 'text', 'label' => 'Voce iniziale vuota', 'default' => 'Scegli…'];
+		if ($type === 'select') {
+			$inspector['placeholder'] = ['type' => 'text', 'label' => 'Voce iniziale vuota', 'default' => 'Scegli…'];
+		}
+	}
+
+	if (in_array($type, ['number', 'date'], true)) {
+		$date_description = $type === 'date' ? 'Formato AAAA-MM-GG. Lascia vuoto per non impostare un limite.' : 'Lascia vuoto per non impostare un limite.';
+		$inspector['min'] = ['type' => 'text', 'label' => $type === 'date' ? 'Data minima' : 'Valore minimo', 'default' => '', 'description' => $date_description];
+		$inspector['max'] = ['type' => 'text', 'label' => $type === 'date' ? 'Data massima' : 'Valore massimo', 'default' => '', 'description' => $date_description];
+		if ($type === 'number') {
+			$inspector['step'] = ['type' => 'text', 'label' => 'Incremento', 'default' => '', 'description' => '1 per interi, ad esempio 0.5 per decimali, any per qualunque decimale. Se vuoto, 1.'];
+		}
 	}
 
 	if ($type === 'file') {
@@ -96,7 +113,6 @@ function corsivo_forms_field_schema($type) {
 			'label'    => 'Formati consentiti',
 			'options'  => $extension_options,
 			'default'  => ['pdf', 'jpg', 'jpeg', 'png'],
-			'sortable' => false,
 		];
 		$inspector['max_files'] = [
 			'type'    => 'range',
@@ -118,6 +134,7 @@ function corsivo_forms_field_schema($type) {
 	return [
 		['scope' => 'content', 'fields' => $content],
 		['scope' => 'inspector', 'panel' => 'Campo', 'fields' => $inspector],
+		['scope' => 'inspector', 'panel' => 'Visibilità', 'fields' => corsivo_forms_condition_schema()],
 		['scope' => 'inspector-advanced', 'fields' => [
 			'field_key' => [
 				'type'        => 'text',
@@ -128,6 +145,30 @@ function corsivo_forms_field_schema($type) {
 					. ' Se vuota, deriva dall\'etichetta.',
 			],
 		]],
+	];
+}
+
+function corsivo_forms_condition_schema($notification = false) {
+	return [
+		'condition_mode' => ['type' => 'select', 'label' => $notification ? 'Applica quando' : 'Mostra quando', 'default' => 'all', 'options' => [
+			['value' => 'all', 'label' => 'Tutte le condizioni sono vere'],
+			['value' => 'any', 'label' => 'Almeno una condizione è vera'],
+		]],
+		'conditions' => [
+			'type' => 'repeater', 'label' => 'Condizioni', 'previewKey' => 'field', 'default' => [], 'max' => 10,
+			'description' => ($notification ? 'Aggiungi almeno una condizione. ' : 'Senza condizioni il campo resta visibile. ') . 'Usa la chiave esatta del campo sorgente: impostala nel pannello Avanzate. File e privacy non possono essere sorgenti.',
+			'fields' => [
+				'field' => ['type' => 'text', 'label' => 'Chiave del campo sorgente', 'default' => ''],
+				'operator' => ['type' => 'select', 'label' => 'Confronto', 'default' => 'equal', 'options' => [
+					['value' => 'equal', 'label' => 'È uguale a'], ['value' => 'not_equal', 'label' => 'È diverso da'],
+					['value' => 'contains', 'label' => 'Contiene'], ['value' => 'not_contains', 'label' => 'Non contiene'],
+					['value' => 'is_empty', 'label' => 'È vuoto'], ['value' => 'is_not_empty', 'label' => 'Non è vuoto'],
+					['value' => 'greater', 'label' => 'È maggiore di (numero/data)'], ['value' => 'greater_or_equal', 'label' => 'È maggiore o uguale (numero/data)'],
+					['value' => 'less', 'label' => 'È minore di (numero/data)'], ['value' => 'less_or_equal', 'label' => 'È minore o uguale (numero/data)'],
+				]],
+				'value' => ['type' => 'text', 'label' => 'Valore', 'default' => '', 'description' => 'Per le scelte usa l’etichetta esatta; per le spunte 1 o 0; per le date AAAA-MM-GG. Non serve per il confronto vuoto.'],
+			],
+		],
 	];
 }
 
@@ -182,7 +223,7 @@ function corsivo_forms_normalize_field_values($type, array $values) {
 		$normalized['placeholder'] = corsivo_forms_limit_text(sanitize_text_field((string) ($values['placeholder'] ?? '')), 250);
 	}
 
-	if ($type === 'select') {
+	if (in_array($type, ['select', 'radio'], true)) {
 		$options = [];
 		foreach (array_slice((array) ($values['options'] ?? []), 0, 100) as $row) {
 			$option = is_array($row) ? trim(sanitize_text_field((string) ($row['option'] ?? ''))) : '';
@@ -192,6 +233,30 @@ function corsivo_forms_normalize_field_values($type, array $values) {
 			}
 		}
 		$normalized['options'] = array_map(static fn($option) => ['option' => $option], $options);
+	}
+
+	if (in_array($type, ['number', 'date'], true)) {
+		foreach ($type === 'number' ? ['min', 'max', 'step'] : ['min', 'max'] as $bound) {
+			$value = $values[$bound] ?? '';
+			$value = is_scalar($value) && !is_bool($value) ? trim((string) $value) : '__invalid__';
+			if ($value !== '') {
+				$normalized[$bound] = corsivo_forms_limit_text($value, 100);
+			}
+		}
+	}
+
+	$has_conditions = array_key_exists('conditions', $values) && $values['conditions'] !== [];
+	if ($type !== 'privacy' && ($has_conditions || array_key_exists('_conditions_error', $values))) {
+		$conditions = corsivo_forms_normalize_conditions(array_key_exists('conditions', $values) ? $values['conditions'] : [], array_key_exists('condition_mode', $values) ? $values['condition_mode'] : 'all');
+		if (array_key_exists('_conditions_error', $values) || is_wp_error($conditions)) {
+			$normalized['_conditions_error'] = 'invalid_conditions';
+		} elseif ($conditions['conditions']) {
+			$normalized['condition_mode'] = $conditions['condition_mode'];
+			$normalized['conditions'] = $conditions['conditions'];
+		}
+	}
+	if ($type === 'privacy' && ($has_conditions || array_key_exists('_conditions_error', $values))) {
+		$normalized['_conditions_error'] = 'conditional_privacy';
 	}
 
 	if ($type === 'file') {
@@ -293,6 +358,18 @@ function corsivo_forms_render_field_input($type, $name, array $values) {
 	$required_attr = $required ? ' required aria-required="true"' : '';
 	$required_mark = $required ? '<span class="corsivo-form-field__required" aria-hidden="true"> *</span>' : '';
 
+	if ($type === 'radio') {
+		$options = '';
+		foreach (corsivo_forms_select_options($values) as $index => $option) {
+			$options .= '<label class="corsivo-form-field__check" for="' . esc_attr($input_id . '-' . $index) . '">'
+				. '<input id="' . esc_attr($input_id . '-' . $index) . '" type="radio" name="' . esc_attr($name) . '" value="' . htmlspecialchars($option, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true) . '"' . $required_attr . '>'
+				. '<span>' . esc_html($option) . '</span></label>';
+		}
+		return '<fieldset class="corsivo-form-field corsivo-form-field--radio" data-corsivo-form-name="' . esc_attr($name) . '">'
+			. '<legend class="corsivo-form-field__label">' . esc_html($label) . $required_mark . '</legend>'
+			. '<div class="corsivo-form-field__choices">' . $options . '</div></fieldset>';
+	}
+
 	if ($type === 'checkbox') {
 		return '<div class="corsivo-form-field corsivo-form-field--checkbox" data-corsivo-form-name="' . esc_attr($name) . '">'
 			. '<label class="corsivo-form-field__check">'
@@ -350,9 +427,17 @@ function corsivo_forms_render_field_input($type, $name, array $values) {
 	} elseif ($type === 'select') {
 		$choices = '<option value="">' . esc_html($placeholder !== '' ? $placeholder : '—') . '</option>';
 		foreach (corsivo_forms_select_options($values) as $option) {
-			$choices .= '<option value="' . esc_attr($option) . '">' . esc_html($option) . '</option>';
+			$choices .= '<option value="' . htmlspecialchars($option, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true) . '">' . esc_html($option) . '</option>';
 		}
 		$control = '<select class="corsivo-form-field__input" id="' . esc_attr($input_id) . '" name="' . esc_attr($name) . '"' . $required_attr . '>' . $choices . '</select>';
+	} elseif (in_array($type, ['number', 'date'], true)) {
+		$limits = '';
+		foreach ($type === 'number' ? ['min', 'max', 'step'] : ['min', 'max'] as $bound) {
+			if (isset($values[$bound])) {
+				$limits .= ' ' . $bound . '="' . esc_attr($values[$bound]) . '"';
+			}
+		}
+		$control = '<input class="corsivo-form-field__input" id="' . esc_attr($input_id) . '" type="' . esc_attr($type) . '" name="' . esc_attr($name) . '"' . $limits . $required_attr . '>';
 	} else {
 		$autocomplete = ['email' => 'email', 'tel' => 'tel'][$type] ?? '';
 		$control = '<input class="corsivo-form-field__input" id="' . esc_attr($input_id) . '" type="' . esc_attr($type) . '" name="' . esc_attr($name) . '" maxlength="500"'
@@ -387,8 +472,14 @@ function corsivo_forms_validate_field(array $field, $raw) {
 		return ['value' => $accepted, 'error' => null];
 	}
 
+	if (in_array($type, ['number', 'date', 'radio'], true) && $raw !== null && (!is_scalar($raw) || is_bool($raw))) {
+		return ['value' => '', 'error' => __('Inserisci un valore valido.', 'corsivo-forms')];
+	}
+
 	$value = is_scalar($raw) ? trim((string) $raw) : '';
-	$value = $type === 'textarea' ? sanitize_textarea_field($value) : sanitize_text_field($value);
+	if (!in_array($type, ['number', 'date'], true)) {
+		$value = $type === 'textarea' ? sanitize_textarea_field($value) : sanitize_text_field($value);
+	}
 
 	if ($value === '') {
 		return $required
@@ -400,8 +491,35 @@ function corsivo_forms_validate_field(array $field, $raw) {
 		return ['value' => '', 'error' => __('Inserisci un indirizzo email valido.', 'corsivo-forms')];
 	}
 
-	if ($type === 'select' && !in_array($value, corsivo_forms_select_options($values), true)) {
+	if (in_array($type, ['select', 'radio'], true) && !in_array($value, corsivo_forms_select_options($values), true)) {
 		return ['value' => '', 'error' => __('Scegli una delle opzioni disponibili.', 'corsivo-forms')];
+	}
+
+	if ($type === 'number') {
+		$number = corsivo_forms_parse_number($value);
+		if ($number === null) {
+			return ['value' => '', 'error' => __('Inserisci un numero valido.', 'corsivo-forms')];
+		}
+		if ((isset($values['min']) && $number < (float) $values['min']) || (isset($values['max']) && $number > (float) $values['max'])) {
+			return ['value' => '', 'error' => __('Il numero è fuori dall’intervallo consentito.', 'corsivo-forms')];
+		}
+		$step = $values['step'] ?? '1';
+		if ($step !== 'any') {
+			$increment = corsivo_forms_parse_number($step);
+			$quotient = $increment && $increment > 0 ? ($number - (float) ($values['min'] ?? 0)) / $increment : INF;
+			if (!is_finite($quotient) || abs($quotient - round($quotient)) > 1e-7) {
+				return ['value' => '', 'error' => __('Il numero non rispetta l’incremento consentito.', 'corsivo-forms')];
+			}
+		}
+	}
+
+	if ($type === 'date') {
+		if (!corsivo_forms_is_valid_date($value)) {
+			return ['value' => '', 'error' => __('Inserisci una data valida nel formato AAAA-MM-GG.', 'corsivo-forms')];
+		}
+		if ((isset($values['min']) && strcmp($value, $values['min']) < 0) || (isset($values['max']) && strcmp($value, $values['max']) > 0)) {
+			return ['value' => '', 'error' => __('La data è fuori dall’intervallo consentito.', 'corsivo-forms')];
+		}
 	}
 
 	$max_length = $type === 'textarea' ? 5000 : 500;
@@ -410,4 +528,42 @@ function corsivo_forms_validate_field(array $field, $raw) {
 	}
 
 	return ['value' => $value, 'error' => null];
+}
+
+function corsivo_forms_parse_number($value) {
+	if (!is_scalar($value) || is_bool($value) || !preg_match('/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/D', trim((string) $value))) {
+		return null;
+	}
+	$number = (float) $value;
+	return is_finite($number) ? $number : null;
+}
+
+function corsivo_forms_is_valid_date($value) {
+	if (!is_string($value) || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', $value, $parts)) {
+		return false;
+	}
+	return checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]);
+}
+
+function corsivo_forms_field_configuration_error(array $field) {
+	$type = $field['type'] ?? '';
+	$values = (array) ($field['values'] ?? []);
+	if (($type === 'radio' || ($type === 'select' && !empty($values['required']))) && !corsivo_forms_select_options($values)) {
+		return new WP_Error($type === 'select' ? 'empty_required_select' : 'empty_radio_options', __('Il modulo non è disponibile: configura le opzioni del campo a scelta.', 'corsivo-forms'), ['status' => 409]);
+	}
+	if (!in_array($type, ['number', 'date'], true)) {
+		return null;
+	}
+	foreach (['min', 'max'] as $bound) {
+		if (isset($values[$bound]) && ($type === 'number' ? corsivo_forms_parse_number($values[$bound]) === null : !corsivo_forms_is_valid_date($values[$bound]))) {
+			return new WP_Error('invalid_field_limits', __('Il modulo non è disponibile: controlla i limiti dei campi numero e data.', 'corsivo-forms'), ['status' => 409]);
+		}
+	}
+	if (isset($values['min'], $values['max']) && ($type === 'number' ? (float) $values['min'] > (float) $values['max'] : strcmp($values['min'], $values['max']) > 0)) {
+		return new WP_Error('invalid_field_limits', __('Il modulo non è disponibile: il limite minimo supera il massimo.', 'corsivo-forms'), ['status' => 409]);
+	}
+	if ($type === 'number' && isset($values['step']) && $values['step'] !== 'any' && (corsivo_forms_parse_number($values['step']) === null || (float) $values['step'] <= 0)) {
+		return new WP_Error('invalid_field_step', __('Il modulo non è disponibile: l’incremento deve essere positivo oppure any.', 'corsivo-forms'), ['status' => 409]);
+	}
+	return null;
 }

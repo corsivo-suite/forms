@@ -17,6 +17,28 @@
 	gap: 0.35rem;
 }
 
+.corsivo-form-field[hidden] {
+	display: none;
+}
+
+.corsivo-form-field--radio {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	min-width: 0;
+}
+
+.corsivo-form-field--radio legend {
+	padding: 0;
+	margin-bottom: 0.35rem;
+}
+
+.corsivo-form-field__choices {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
 .corsivo-form-field__label {
 	font-weight: 600;
 	font-size: 0.9em;

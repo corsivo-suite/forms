@@ -52,7 +52,7 @@ function corsivo_forms_request_fingerprint(WP_REST_Request $request) {
 
 	$upload_identity = corsivo_forms_request_upload_identity($request);
 	if (is_wp_error($upload_identity)) {
-		return $upload_identity;
+		$upload_identity = ['unverified' => corsivo_forms_unverified_upload_identity($request->get_file_params())];
 	}
 
 	$identity = [
@@ -154,12 +154,13 @@ function corsivo_forms_handle_submit(WP_REST_Request $request) {
 		return $definition;
 	}
 
-	$fields = $definition['fields'];
-	if (!$fields) {
+	if (!$definition['fields']) {
 		return new WP_Error('empty_form', __('Il modulo non contiene campi validi.', 'corsivo-forms'), ['status' => 409]);
 	}
+	$fields = corsivo_forms_resolve_active_fields($definition['fields'], $request->get_params());
+	$upload_request = corsivo_forms_active_upload_request($request, $definition['fields'], $fields);
 
-	$upload_preparation = corsivo_forms_prepare_request_uploads($request, $fields);
+	$upload_preparation = corsivo_forms_prepare_request_uploads($upload_request, $fields);
 	if (is_wp_error($upload_preparation)) {
 		$validation_rate_limit = corsivo_forms_check_validation_rate_limit($definition['form_id']);
 		return is_wp_error($validation_rate_limit) ? $validation_rate_limit : $upload_preparation;
@@ -194,6 +195,14 @@ function corsivo_forms_handle_submit(WP_REST_Request $request) {
 	$rate_limit = corsivo_forms_check_rate_limit($definition['form_id']);
 	if (is_wp_error($rate_limit)) {
 		return $rate_limit;
+	}
+	$upload_bytes = array_sum(array_column($upload_preparation['prepared']['files'] ?? [], 'size'));
+	if ($upload_bytes > 0) {
+		$upload_limit = max(CORSIVO_FORMS_UPLOAD_MAX_REQUEST_BYTES, (int) apply_filters('corsivo_forms_daily_upload_budget', 250 * MB_IN_BYTES, $definition['form_id']));
+		$upload_budget = corsivo_forms_increment_rate_limit('uploads|' . $definition['form_id'], $upload_limit, DAY_IN_SECONDS, (int) $upload_bytes, 'all-clients');
+		if (is_wp_error($upload_budget)) {
+			return $upload_budget;
+		}
 	}
 
 	$claim = corsivo_forms_activity_claim_request($request_id, [
@@ -311,7 +320,27 @@ function corsivo_forms_resolve_request_definition(WP_REST_Request $request) {
 	return corsivo_forms_read_form_token((string) $request->get_param('token'));
 }
 
+function corsivo_forms_active_upload_request(WP_REST_Request $request, array $fields, array $active_fields) {
+	$active = array_column($active_fields, null, 'name');
+	$hidden_files = [];
+	foreach ($fields as $field) {
+		if ($field['type'] === 'file' && !isset($active[$field['name']])) {
+			$hidden_files[$field['name']] = true;
+		}
+	}
+	$upload_request = clone $request;
+	$uploads = $request->get_file_params();
+	foreach (array_keys($uploads) as $name) {
+		if (isset($hidden_files[corsivo_forms_upload_field_name($name)])) {
+			unset($uploads[$name]);
+		}
+	}
+	$upload_request->set_file_params($uploads);
+	return $upload_request;
+}
+
 function corsivo_forms_build_submission(array $settings, array $fields, array $clean, array $definition, $request_id) {
+	$settings = corsivo_forms_select_notification_settings($settings, $fields, $clean);
 	$rows                 = [];
 	$consents             = [];
 	$sender_email         = '';
@@ -445,41 +474,42 @@ function corsivo_forms_check_validation_rate_limit($form_id) {
 	return corsivo_forms_increment_rate_limit('validation|' . $form_id, $limit, $window);
 }
 
-function corsivo_forms_increment_rate_limit($bucket, $limit, $window) {
-	$ip = apply_filters('corsivo_forms_client_ip', (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-	$ip = filter_var($ip, FILTER_VALIDATE_IP) ? $ip : 'unknown';
-	$scope = hash_hmac('sha256', $ip . '|' . $bucket, wp_salt('nonce'));
-	$key   = 'corsivo_forms_rate_' . $scope;
-	$lock  = 'corsivo_forms_rate_lock_' . $scope;
-
-	$locked = add_option($lock, time(), '', false);
-	if (!$locked) {
-		$started = (int) get_option($lock, 0);
-		if ($started > 0 && $started < time() - 10) {
-			delete_option($lock);
-			$locked = add_option($lock, time(), '', false);
-		}
+function corsivo_forms_increment_rate_limit($bucket, $limit, $window, $amount = 1, $identity = null) {
+	global $wpdb;
+	if ($identity === null) {
+		$ip = apply_filters('corsivo_forms_client_ip', (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+		$packed = is_string($ip) && filter_var($ip, FILTER_VALIDATE_IP) ? inet_pton($ip) : false;
+		$identity = $packed ? (strlen($packed) === 16 ? bin2hex(substr($packed, 0, 8)) . '/64' : inet_ntop($packed)) : 'unknown';
 	}
-	if (!$locked) {
+	$amount = max(1, (int) $amount);
+	$scope = hash_hmac('sha256', $identity . '|' . $bucket, wp_salt('nonce'));
+	$key   = 'corsivo_forms_rate_' . $scope;
+	$lock  = 'cf_rate_' . substr(hash('sha256', $wpdb->prefix . '|' . $scope), 0, 48);
+	if ((string) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock)) !== '1') {
 		return new WP_Error('rate_limit_busy', __('Riprova tra qualche secondo.', 'corsivo-forms'), ['status' => 429]);
 	}
 
 	try {
+		if (!wp_using_ext_object_cache()) {
+			wp_cache_delete('_transient_' . $key, 'options');
+			wp_cache_delete('_transient_timeout_' . $key, 'options');
+			wp_cache_delete('notoptions', 'options');
+		}
 		$state = get_transient($key);
 		$now   = time();
 		if (!is_array($state) || empty($state['started']) || (int) $state['started'] <= $now - $window) {
 			$state = ['count' => 0, 'started' => $now];
 		}
-		if ((int) $state['count'] >= $limit) {
+		if ($amount > $limit - (int) $state['count']) {
 			return new WP_Error('throttled', __('Troppe richieste: riprova tra qualche minuto.', 'corsivo-forms'), ['status' => 429]);
 		}
-		$state['count'] = (int) $state['count'] + 1;
+		$state['count'] = (int) $state['count'] + $amount;
 		$expires_in     = max(1, (int) $state['started'] + $window - $now);
 		if (!set_transient($key, $state, $expires_in)) {
 			return new WP_Error('rate_limit_unavailable', __('Riprova tra qualche secondo.', 'corsivo-forms'), ['status' => 503]);
 		}
 	} finally {
-		delete_option($lock);
+		$wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
 	}
 
 	return true;

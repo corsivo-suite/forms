@@ -34,7 +34,7 @@ function corsivo_forms_privacy_submission_ids($email_address, $limit, $offset = 
 		"SELECT submissions.ID
 		FROM {$wpdb->posts} submissions
 		WHERE submissions.post_type = %s
-			AND submissions.post_status = 'publish'
+			AND submissions.post_status IN ('publish', 'trash')
 			AND EXISTS (
 				SELECT 1
 				FROM {$wpdb->postmeta} email_index
@@ -366,7 +366,7 @@ function corsivo_forms_expired_submission_ids($after_id, $cutoff) {
 			ON submitted_at.post_id = submissions.ID
 			AND submitted_at.meta_key = %s
 		WHERE submissions.post_type = %s
-			AND submissions.post_status = 'publish'
+			AND submissions.post_status IN ('publish', 'trash')
 			AND submissions.ID > %d
 			AND submitted_at.meta_value <> ''
 			AND submitted_at.meta_value <> '0000-00-00 00:00:00'

@@ -334,7 +334,7 @@ function corsivo_forms_privacy_policy_url($language = '') {
 			$page_id = (int) apply_filters('wpml_object_id', $page_id, 'page', true, $language);
 		}
 		$page = $page_id ? get_post($page_id) : null;
-		if ($page && $page->post_status === 'publish' && is_post_publicly_viewable($page)) {
+		if ($page && $page->post_status === 'publish' && $page->post_password === '' && is_post_publicly_viewable($page)) {
 			return esc_url_raw(get_permalink($page));
 		}
 	}
@@ -344,7 +344,7 @@ function corsivo_forms_privacy_policy_url($language = '') {
 		$page_id = (int) apply_filters('wpml_object_id', $page_id, 'page', true, $language);
 	}
 	$page = $page_id ? get_post($page_id) : null;
-	return $page && $page->post_status === 'publish' && is_post_publicly_viewable($page)
+	return $page && $page->post_status === 'publish' && $page->post_password === '' && is_post_publicly_viewable($page)
 		? esc_url_raw(get_permalink($page))
 		: '';
 }

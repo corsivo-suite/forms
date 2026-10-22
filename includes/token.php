@@ -523,7 +523,7 @@ function corsivo_forms_policy_evidence_is_current(array $fields, $language = '')
 	$policy_url = corsivo_forms_privacy_policy_url($language);
 	$policy_id  = $policy_url ? url_to_postid($policy_url) : 0;
 	$policy     = $policy_id ? get_post($policy_id) : null;
-	if (!$policy || $policy->post_status !== 'publish' || !is_post_publicly_viewable($policy)) {
+	if (!$policy || $policy->post_status !== 'publish' || $policy->post_password !== '' || !is_post_publicly_viewable($policy)) {
 		return false;
 	}
 	$policy_hash = hash('sha256', (string) $policy->post_content);

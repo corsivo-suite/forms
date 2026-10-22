@@ -1,3 +1,8 @@
+= Non rilasciato - 22/10/2026 =
+* Informative protette da password escluse dalla configurazione dei moduli; i token esistenti vengono revocati anche se la protezione cambia senza modificare il contenuto dell'informativa.
+* Export privacy e retention includono le richieste nel cestino: i dati ancora conservati restano esportabili e rispettano la scadenza configurata.
+* Aggiunte regressioni sui token privacy e sulle query di export/retention, queste ultime eseguite su un database SQLite in memoria.
+
 = 0.5.0 — 13/10/2026 =
 * includes/fields.php, includes/blocks.php, assets/corsivo-forms.css: aggiunti campi numero con minimo/massimo/incremento, data con calendario ISO e limiti inclusivi, radio con gruppo accessibile e opzioni validate.
 * includes/conditions.php, includes/fields.php, includes/blocks.php, assets/corsivo-forms.js: condizioni dichiarative fino a 10 righe, combinazione all/any, dipendenze indipendenti dall’ordine dei blocchi e rifiuto di riferimenti mancanti, auto-riferimenti e cicli.

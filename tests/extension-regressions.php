@@ -34,6 +34,11 @@ function apply_filters($hook, $value, ...$arguments) { return $value; }
 function do_action($hook, ...$arguments) { foreach ($GLOBALS['hooks'][$hook] ?? [] as [$callback, $accepted]) { $callback(...array_slice($arguments, 0, $accepted)); } }
 function is_wp_error($value) { return $value instanceof WP_Error; }
 function get_option($key, $default = false) { return $GLOBALS['options'][$key] ?? $default; }
+function get_post($id) { return $GLOBALS['posts'][$id] ?? null; }
+function get_permalink($post) { return home_url('/?p=' . $post->ID); }
+function url_to_postid($url) { parse_str((string) parse_url($url, PHP_URL_QUERY), $query); return (int) ($query['p'] ?? 0); }
+function is_post_publicly_viewable($post) { return $post->post_status === 'publish' && $post->post_type === 'page'; }
+function corsivo_privacy_get_pages_state() { return $GLOBALS['privacy_pages'] ?? []; }
 function plugin_basename($file) { return $file; }
 function wp_salt($purpose) { return 'isolated-forms-fixture-' . $purpose; }
 function home_url($path = '') { return 'https://example.test' . $path; }
@@ -260,5 +265,30 @@ $conflict = clone $request;
 $conflict->set_param('details', 'Changed hidden raw answer');
 $conflict_result = corsivo_forms_handle_submit($conflict);
 extension_check(is_wp_error($conflict_result) && $conflict_result->get_error_code() === 'request_id_conflict' && count($GLOBALS['mail_attempts']) === 1, 'Raw hidden payload changes retain replay conflict semantics');
+
+$policy = (object) ['ID' => 101, 'post_type' => 'page', 'post_status' => 'publish', 'post_password' => '', 'post_content' => 'Privacy policy fixture', 'post_modified_gmt' => '2026-10-22 09:00:00'];
+$GLOBALS['posts'][$policy->ID] = $policy;
+$GLOBALS['options']['wp_page_for_privacy_policy'] = $policy->ID;
+$policy_fields = corsivo_forms_fields_with_policy_evidence([extension_field('privacy', 'privacy')], 'it_it');
+$policy_token = corsivo_forms_create_form_token(extension_definition($policy_fields));
+extension_check(corsivo_forms_privacy_policy_url('it_it') === get_permalink($policy), 'Public WordPress policy remains available');
+extension_check(corsivo_forms_policy_evidence_is_current($policy_fields, 'it_it'), 'Public policy evidence remains current');
+extension_check(!is_wp_error(corsivo_forms_read_form_token($policy_token)), 'Token referencing a public policy is accepted');
+$policy->post_password = 'fixture-password';
+extension_check(corsivo_forms_privacy_policy_url('it_it') === '', 'Password-protected WordPress policy is unavailable');
+extension_check(!corsivo_forms_policy_evidence_is_current($policy_fields, 'it_it'), 'Adding a password revokes existing privacy evidence');
+extension_check(corsivo_forms_read_form_token($policy_token)->get_error_code() === 'privacy_policy_changed', 'Adding a password revokes an already issued rendered token');
+$GLOBALS['options']['wp_page_for_privacy_policy'] = 0;
+$GLOBALS['privacy_pages'] = ['privacy' => ['id' => $policy->ID]];
+extension_check(corsivo_forms_privacy_policy_url('it_it') === '', 'Password-protected Corsivo Privacy policy is unavailable');
+$policy->post_password = '';
+extension_check(corsivo_forms_privacy_policy_url('it_it') === get_permalink($policy), 'Public Corsivo Privacy policy remains available');
+$protected_policy = clone $policy;
+$protected_policy->ID = 102;
+$protected_policy->post_password = 'fixture-password';
+$GLOBALS['posts'][$protected_policy->ID] = $protected_policy;
+$GLOBALS['privacy_pages']['privacy']['id'] = $protected_policy->ID;
+$GLOBALS['options']['wp_page_for_privacy_policy'] = $policy->ID;
+extension_check(corsivo_forms_privacy_policy_url('it_it') === get_permalink($policy), 'Protected integrated policy falls back to the public WordPress policy');
 
 echo 'PASS - ' . $checks . ' Forms extension regressions' . PHP_EOL;

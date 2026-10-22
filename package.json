@@ -20,6 +20,6 @@
     "lint": "npm --prefix admin-app run lint:js",
     "package": "node admin-app/node_modules/@wordpress/scripts/bin/wp-scripts.js plugin-zip",
     "test": "npm --prefix admin-app run test:unit",
-    "test:php": "php tests/storage-static.php && php tests/uploads-static.php && php tests/settings-static.php && php tests/security-regressions.php && php tests/option-cache-static.php && php tests/admin-dataviews-static.php && php tests/extension-regressions.php"
+    "test:php": "php tests/storage-static.php && php tests/uploads-static.php && php tests/settings-static.php && php tests/security-regressions.php && php tests/option-cache-static.php && php tests/admin-dataviews-static.php && php tests/extension-regressions.php && php tests/privacy-regressions.php"
   }
 }

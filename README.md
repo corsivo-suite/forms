@@ -120,6 +120,8 @@ Lo schema della tabella attività è current-only: installazione fresh-only a du
 
 ## Test
 
+`npm run test:php` esegue le regressioni isolate; il test delle query privacy richiede l'estensione PHP `SQLite3` e usa soltanto un database in memoria. Le submission nel cestino restano incluse nell'export privacy e nella retention finché non vengono eliminate definitivamente.
+
 ```sh
 cd wp-content/plugins/corsivo-forms
 npm --prefix admin-app ci
@@ -186,6 +188,7 @@ Ogni percorso è relativo alla root del plugin. `admin-app/node_modules/` resta 
 - `LICENSE` — testo della licenza GPL-2.0-or-later.
 - `package.json` — pipeline di lint, test, build e allowlist del pacchetto distribuibile.
 - `tests/extension-regressions.php` — regressioni isolate sui nuovi tipi, condizioni, notifiche e definizioni precedenti.
+- `tests/privacy-regressions.php` — query reali di export e retention su SQLite in memoria, comprese le richieste nel cestino, i cursori e l'isolamento per indirizzo email.
 - `tests/conditions-fixtures.json` — casi condivisi per la valutazione delle condizioni PHP e JavaScript.
 - `tests/extension-wordpress.php` — regressioni nel runtime WordPress con invii simulati e pulizia delle fixture.
 - `tests/run.php` — suite TAP WordPress su token, validazione, submit E2E, upload multipart/storage/download, idempotenza, mail, retention e privacy.

@@ -6,7 +6,9 @@ if (!defined('ABSPATH')) {
 
 add_action('admin_init', 'corsivo_forms_register_settings');
 add_action('admin_menu', 'corsivo_forms_register_settings_page');
+add_action('admin_menu', 'corsivo_forms_redirect_legacy_settings_page', 100);
 add_action('admin_enqueue_scripts', 'corsivo_forms_enqueue_activity_assets');
+add_action('admin_enqueue_scripts', 'corsivo_forms_enqueue_workspace');
 add_action('rest_api_init', 'corsivo_forms_register_activity_rest_route');
 add_filter('plugin_action_links_' . plugin_basename(CORSIVO_FORMS_FILE), 'corsivo_forms_plugin_action_links');
 
@@ -78,9 +80,9 @@ function corsivo_forms_install_settings() {
 
 function corsivo_forms_register_settings_page() {
 	add_submenu_page(
-		'tools.php',
-		'Corsivo Forms',
-		'Corsivo Forms',
+		'edit.php?post_type=corsivo_submission',
+		__('Gestione richieste', 'corsivo-forms'),
+		__('Attività e impostazioni', 'corsivo-forms'),
 		'manage_options',
 		'corsivo-forms-settings',
 		'corsivo_forms_render_settings_page'
@@ -98,8 +100,19 @@ function corsivo_forms_settings_page_url($tab = 'activity', array $args = []) {
 			'page' => 'corsivo-forms-settings',
 			'tab'  => $tab,
 		], $args),
-		admin_url('tools.php')
+		admin_url('admin.php')
 	);
+}
+
+function corsivo_forms_redirect_legacy_settings_page() {
+	global $pagenow;
+	if ($pagenow !== 'tools.php'
+		|| ($_GET['page'] ?? '') !== 'corsivo-forms-settings'
+		|| !current_user_can('manage_options')) {
+		return;
+	}
+	wp_safe_redirect(add_query_arg(wp_unslash($_GET), admin_url('admin.php')));
+	exit;
 }
 
 function corsivo_forms_render_settings_page() {
@@ -119,8 +132,8 @@ function corsivo_forms_render_settings_page() {
 		$tab = 'activity';
 	}
 
-	echo '<div class="wrap">';
-	echo '<h1>' . esc_html('Corsivo Forms') . '</h1>';
+	echo '<div class="wrap corsivo-admin-workspace' . ($tab === 'activity' ? ' corsivo-admin-workspace--wide' : '') . '">';
+	echo '<h1>' . esc_html__('Gestione richieste', 'corsivo-forms') . '</h1>';
 	settings_errors('corsivo_forms_settings');
 
 	if (isset($_GET['activity_cleared'])) {
@@ -130,12 +143,20 @@ function corsivo_forms_render_settings_page() {
 		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html('Impossibile svuotare il registro attività.') . '</p></div>';
 	}
 
-	echo '<nav class="nav-tab-wrapper">';
-	foreach ($tabs as $tab_key => $tab_label) {
-		$class = $tab === $tab_key ? 'nav-tab nav-tab-active' : 'nav-tab';
-		echo '<a class="' . esc_attr($class) . '" href="' . esc_url(corsivo_forms_settings_page_url($tab_key)) . '">' . esc_html($tab_label) . '</a>';
+	echo '<nav class="corsivo-admin-workspace__groups" aria-label="Aree richieste">';
+	foreach (['activity' => 'Attività', 'settings' => 'Configurazione'] as $key => $label) {
+		$active = $key === 'activity' ? $tab === 'activity' : $tab !== 'activity';
+		echo '<a class="corsivo-admin-workspace__group"' . ($active ? ' aria-current="page"' : '') . ' href="' . esc_url(corsivo_forms_settings_page_url($active ? $tab : $key)) . '">' . esc_html($label) . '</a>';
 	}
-	echo '</nav>';
+	echo '</nav><div class="corsivo-admin-workspace__layout' . ($tab === 'activity' ? ' corsivo-admin-workspace__layout--single' : '') . '">';
+	if ($tab !== 'activity') {
+		echo '<nav class="corsivo-admin-workspace__sidebar" aria-label="Configurazione richieste">';
+		foreach (['settings' => 'Generali', 'integrations' => 'Integrazioni'] as $key => $label) {
+			echo '<a class="corsivo-admin-workspace__section"' . ($tab === $key ? ' aria-current="page"' : '') . ' href="' . esc_url(corsivo_forms_settings_page_url($key)) . '">' . esc_html($label) . '</a>';
+		}
+		echo '</nav>';
+	}
+	echo '<div class="corsivo-admin-workspace__content">';
 
 	if ($tab === 'settings') {
 		corsivo_forms_render_general_settings();
@@ -145,12 +166,23 @@ function corsivo_forms_render_settings_page() {
 		corsivo_forms_render_activity_tab();
 	}
 
-	echo '</div>';
+	echo '</div></div></div>';
+}
+
+function corsivo_forms_enqueue_workspace($hook) {
+	if ($hook !== get_plugin_page_hookname('corsivo-forms-settings', 'edit.php?post_type=corsivo_submission') || !current_user_can('manage_options')) {
+		return;
+	}
+	foreach (['admin-workspace.css', 'admin-workspace-layout.css'] as $file) {
+		wp_enqueue_style('corsivo-forms-' . basename($file, '.css'), CORSIVO_FORMS_URL . 'assets/' . $file, [], (string) filemtime(CORSIVO_FORMS_DIR . 'assets/' . $file));
+	}
+	wp_enqueue_script('corsivo-forms-workspace', CORSIVO_FORMS_URL . 'assets/admin-workspace.js', [], (string) filemtime(CORSIVO_FORMS_DIR . 'assets/admin-workspace.js'), true);
 }
 
 function corsivo_forms_render_general_settings() {
 	$settings = corsivo_forms_get_settings();
 
+	echo '<h2>' . esc_html('Generali') . '</h2>';
 	echo '<form method="post" action="' . esc_url(admin_url('options.php')) . '">';
 	settings_fields('corsivo_forms_settings');
 	echo '<table class="form-table" role="presentation"><tbody>';
@@ -203,6 +235,7 @@ function corsivo_forms_render_integration_settings() {
 	$settings     = corsivo_forms_get_settings();
 	$integrations = corsivo_forms_integration_definitions();
 
+	echo '<h2>' . esc_html('Integrazioni') . '</h2>';
 	echo '<form method="post" action="' . esc_url(admin_url('options.php')) . '">';
 	settings_fields('corsivo_forms_settings');
 	echo '<table class="widefat striped" style="margin-top:20px"><thead><tr>';
@@ -255,7 +288,7 @@ function corsivo_forms_activity_admin_config() {
 }
 
 function corsivo_forms_enqueue_activity_assets($hook) {
-	if ($hook !== 'tools_page_corsivo-forms-settings'
+	if ($hook !== get_plugin_page_hookname('corsivo-forms-settings', 'edit.php?post_type=corsivo_submission')
 		|| sanitize_key(isset($_GET['tab']) && is_scalar($_GET['tab']) ? wp_unslash((string) $_GET['tab']) : 'activity') !== 'activity'
 		|| !current_user_can('manage_options')
 		|| !corsivo_forms_activity_assets_available()) {

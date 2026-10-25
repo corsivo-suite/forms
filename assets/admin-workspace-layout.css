@@ -1,0 +1,40 @@
+/* Local adapters; the foundation stylesheet is copied without modification. */
+.corsivo-admin-workspace .corsivo-admin-workspace__content {
+	overflow-x: auto;
+}
+.corsivo-admin-workspace .corsivo-admin-workspace__content h2:first-child {
+	margin-top: 0;
+}
+.corsivo-admin-workspace .form-table {
+	margin-top: 0;
+}
+.corsivo-admin-workspace .form-table th {
+	width: 210px;
+	padding-left: 0;
+}
+.corsivo-admin-workspace .form-table input:not([type="checkbox"]):not([type="radio"]),
+.corsivo-admin-workspace .form-table select,
+.corsivo-admin-workspace .form-table textarea {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+.corsivo-admin-workspace .form-table code {
+	overflow-wrap: anywhere;
+}
+.corsivo-admin-workspace .corsivo-newsletter-log-filters,
+.corsivo-admin-workspace .search-form .search-box,
+.corsivo-admin-workspace .corsivo-newsletter-list-field {
+	flex-wrap: wrap;
+}
+@media (max-width: 782px) {
+	.corsivo-admin-workspace .form-table th {
+		width: auto;
+	}
+	.corsivo-admin-workspace .form-table td {
+		padding-left: 0;
+		padding-right: 0;
+	}
+	.corsivo-admin-workspace .form-table p.description {
+		display: block;
+	}
+}

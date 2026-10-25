@@ -1,5 +1,9 @@
 # Corsivo Forms
 
+La pagina **Attività e impostazioni** usa il workspace Corsivo: Attività occupa tutta la larghezza; Configurazione raccoglie Generali e Integrazioni nella navigazione laterale. Gli URL `tab=activity`, `tab=settings` e `tab=integrations` restano validi. Le modifiche non salvate attivano l'avviso del browser quando si lascia il form.
+
+Gli asset `assets/admin-workspace.css`, `admin-workspace-layout.css` e `admin-workspace.js` sono inclusi nel plugin: nessun altro plugin è necessario per la navigazione. Il primo file è la copia del foundation `admin-workspace/style.css` del package `wp-admin-ui`; gli adattamenti locali sono separati. Le schermate PHP non richiedono di ricompilare il bundle DataViews. Il test `node tests/workspace-navigation.cjs <percorso-al-modulo-jsdom>` verifica navigazione, conservazione dei campi, validazione e avviso modifiche.
+
 Moduli di contatto nativi Gutenberg per la suite Corsivo: form composti a blocchi nell'editor, submission REST con anti-abuso a più livelli, upload privati, archivio richieste in bacheca e registro attività idempotente.
 
 ## Scopo
@@ -142,7 +146,7 @@ wp eval-file wp-content/plugins/corsivo-forms/tests/admin-dataviews-wordpress.ph
 
 ## Configurazione
 
-Pagina `Strumenti → Corsivo Forms`, tab Attività (DataViews con ricerca, filtri, paginazione e pulizia manuale che conserva i claim in elaborazione), Impostazioni e Integrazioni. Opzione unica `corsivo_forms_settings`:
+Menu principale `Richieste` (posizione 30), con archivio delle richieste e pagina `Attività e impostazioni`: tab Attività (DataViews con ricerca, filtri, paginazione e pulizia manuale che conserva i claim in elaborazione), Impostazioni e Integrazioni. La pagina usa `admin.php?page=corsivo-forms-settings`; i vecchi collegamenti da `tools.php` vengono reindirizzati conservando tab, filtri e notifiche. Il menu funziona senza altri plugin Corsivo. Opzione unica `corsivo_forms_settings`:
 
 | Chiave | Default | Note |
 | --- | --- | --- |

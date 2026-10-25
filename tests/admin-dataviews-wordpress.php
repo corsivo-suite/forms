@@ -21,7 +21,8 @@ if (!isset($response->get_headers()['X-WP-Total'], $response->get_headers()['X-W
 }
 
 $_GET['tab'] = 'activity';
-corsivo_forms_enqueue_activity_assets('tools_page_corsivo-forms-settings');
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
+corsivo_forms_enqueue_activity_assets(get_plugin_page_hookname('corsivo-forms-settings', 'edit.php?post_type=corsivo_submission'));
 if (!wp_script_is('corsivo-forms-activity', 'enqueued')
 	|| !wp_style_is('corsivo-forms-activity-ui', 'enqueued')
 	|| !wp_style_is('corsivo-forms-activity-app', 'enqueued')) {

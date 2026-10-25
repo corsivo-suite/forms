@@ -1,4 +1,6 @@
 = Non rilasciato - 22/10/2026 =
+* Workspace coerente con Core Editor: Attività ampia, Configurazione laterale con Generali e Integrazioni, CSS locale e avviso modifiche non salvate; URL e salvataggi invariati.
+* Richieste spostate in un menu autonomo con Attività e impostazioni; conservati vecchi URL, filtri e permessi.
 * Informative protette da password escluse dalla configurazione dei moduli; i token esistenti vengono revocati anche se la protezione cambia senza modificare il contenuto dell'informativa.
 * Export privacy e retention includono le richieste nel cestino: i dati ancora conservati restano esportabili e rispettano la scadenza configurata.
 * Aggiunte regressioni sui token privacy e sulle query di export/retention, queste ultime eseguite su un database SQLite in memoria.

@@ -12,12 +12,16 @@ $scripts = [];
 $styles = [];
 $can_manage = true;
 $assertions = 0;
+$options = ['corsivo_forms_settings' => ['log_retention_days' => 60, 'submission_retention_days' => 120]];
 
 function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {
 	$GLOBALS['actions'][$hook][] = [$callback, $priority];
 }
 function add_filter() {}
 function __($text, $domain = '') { return $text; }
+function get_option($key, $default = false) { return $GLOBALS['options'][$key] ?? $default; }
+function sanitize_email($value) { return filter_var($value, FILTER_SANITIZE_EMAIL); }
+function is_email($value) { return filter_var($value, FILTER_VALIDATE_EMAIL); }
 function plugin_basename($file) { return basename($file); }
 function current_user_can($capability) { return $GLOBALS['can_manage'] && $capability === 'manage_options'; }
 function register_post_type($type, $args) { $GLOBALS['post_types'][$type] = $args; }
@@ -49,6 +53,13 @@ function test_assert($condition, $message) {
 
 require ABSPATH . 'includes/submissions.php';
 require ABSPATH . 'includes/settings.php';
+
+$retention = corsivo_forms_sanitize_settings(['log_retention_days' => '', 'submission_retention_days' => '  ']);
+test_assert($retention['log_retention_days'] === 60, 'Blank activity retention overrides the saved value.');
+test_assert($retention['submission_retention_days'] === 120, 'Blank submission retention overrides the saved value.');
+$retention = corsivo_forms_sanitize_settings(['log_retention_days' => '1', 'submission_retention_days' => '0']);
+test_assert($retention['log_retention_days'] === 1, 'One day of activity retention is not accepted.');
+test_assert($retention['submission_retention_days'] === 0, 'Disabling automatic submission cleanup is not accepted.');
 
 corsivo_forms_register_submission_cpt();
 corsivo_forms_register_settings_page();

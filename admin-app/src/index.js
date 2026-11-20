@@ -18,6 +18,7 @@ import '@corsivo-suite/wp-admin-ui/styles.css';
 import './style.css';
 import {
 	collectionQueryMapping,
+	createActivityRequestUrl,
 	createActivityUrlState,
 	statusTone,
 	syncActivityViewToUrl,
@@ -87,8 +88,12 @@ function ActivityCollection() {
 	}, [ view ] );
 
 	const loadItems = useCallback( async ( query, { signal } = {} ) => {
-		const parameters = new URLSearchParams( query );
-		const response = await fetch( `${ config.endpoint }?${ parameters }`, {
+		const url = createActivityRequestUrl(
+			config.endpoint,
+			query,
+			window.location.href
+		);
+		const response = await fetch( url, {
 			signal,
 			credentials: 'same-origin',
 			headers: { 'X-WP-Nonce': config.nonce },

@@ -280,6 +280,35 @@ describe( 'public form conditional fields', () => {
 		browser.window.close();
 	} );
 
+	it( 'resets a successful submission containing a field named reset', async () => {
+		const { browser, window, form, control } = createForm(
+			[ { type: 'text', name: 'reset', values: {} } ],
+			{ reset: 'Keep this in the submitted payload' }
+		);
+		const input = control( 'reset' );
+		// jsdom does not expose named controls as properties of the form.
+		Object.defineProperty( form, 'reset', { value: input } );
+		window.fetch = jest.fn().mockResolvedValue( {
+			ok: true,
+			text: async () => JSON.stringify( { sent: true, message: 'Done' } ),
+		} );
+		form.dispatchEvent(
+			new window.Event( 'submit', { bubbles: true, cancelable: true } )
+		);
+		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+
+		expect( window.fetch ).toHaveBeenCalledTimes( 1 );
+		expect( window.fetch.mock.calls[ 0 ][ 1 ].body.get( 'reset' ) ).toBe(
+			'Keep this in the submitted payload'
+		);
+		expect( input.value ).toBe( '' );
+		expect(
+			form.querySelector( '.corsivo-form-form__feedback.is-success' )
+				?.textContent
+		).toBe( 'Done' );
+		browser.window.close();
+	} );
+
 	it( 'rechecks silent field changes before building the submitted payload', async () => {
 		const { browser, window, form, control } = createForm(
 			[

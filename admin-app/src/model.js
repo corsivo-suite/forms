@@ -25,6 +25,14 @@ export const collectionQueryMapping = {
 	},
 };
 
+export const createActivityRequestUrl = ( endpoint, query, baseUrl ) => {
+	const url = new URL( endpoint, baseUrl );
+	for ( const [ key, value ] of new URLSearchParams( query ) ) {
+		url.searchParams.set( key, value );
+	}
+	return url;
+};
+
 const getPositiveInteger = ( value, fallback ) => {
 	const number = Number( value );
 	return Number.isInteger( number ) && number > 0 ? number : fallback;

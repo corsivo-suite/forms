@@ -378,7 +378,7 @@
 				const responseData = await readResponse(response);
 
 				if (response.ok && responseData.sent) {
-					form.reset();
+					HTMLFormElement.prototype.reset.call(form);
 					requestId = createRequestId();
 					if (feedback) {
 						feedback.classList.add('is-success');

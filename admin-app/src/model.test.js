@@ -1,5 +1,6 @@
 import {
 	collectionQueryMapping,
+	createActivityRequestUrl,
 	createActivityUrlState,
 	statusTone,
 	syncActivityViewToUrl,
@@ -17,6 +18,39 @@ describe( 'activity collection model', () => {
 			},
 		} );
 	} );
+
+	it.each( [
+		[
+			'https://example.test/wp-json/corsivo/v1/forms/activity',
+			'/wp-json/corsivo/v1/forms/activity',
+			null,
+		],
+		[
+			'https://example.test/index.php?rest_route=%2Fcorsivo%2Fv1%2Fforms%2Factivity&_locale=user',
+			'/index.php',
+			'/corsivo/v1/forms/activity',
+		],
+	] )(
+		'builds the activity request for %s',
+		( endpoint, pathname, route ) => {
+			const url = createActivityRequestUrl(
+				endpoint,
+				{ page: 2, per_page: 20, search: 'Ordine #21 & A+B' },
+				'https://example.test/wp-admin/admin.php'
+			);
+
+			expect( url.pathname ).toBe( pathname );
+			expect( url.searchParams.get( 'rest_route' ) ).toBe( route );
+			expect( url.searchParams.get( '_locale' ) ).toBe(
+				route ? 'user' : null
+			);
+			expect( url.searchParams.get( 'page' ) ).toBe( '2' );
+			expect( url.searchParams.get( 'per_page' ) ).toBe( '20' );
+			expect( url.searchParams.get( 'search' ) ).toBe(
+				'Ordine #21 & A+B'
+			);
+		}
+	);
 
 	it.each( [
 		[ 'success', 'success' ],

@@ -58,9 +58,17 @@ function corsivo_forms_sanitize_settings($input) {
 	$current = corsivo_forms_get_settings();
 
 	foreach (array_keys(corsivo_forms_settings_defaults()) as $key) {
-		if (array_key_exists($key, $input)) {
-			$current[$key] = $input[$key];
+		if (!array_key_exists($key, $input)) {
+			continue;
 		}
+
+		$value = $input[$key];
+		if (in_array($key, ['log_retention_days', 'submission_retention_days'], true)
+			&& is_string($value) && trim($value) === '') {
+			continue;
+		}
+
+		$current[$key] = $value;
 	}
 
 	return corsivo_forms_normalize_settings($current);
@@ -197,12 +205,12 @@ function corsivo_forms_render_general_settings() {
 	echo '</td></tr>';
 
 	echo '<tr><th scope="row"><label for="corsivo-forms-log-retention">' . esc_html('Conservazione attività') . '</label></th><td>';
-	echo '<input id="corsivo-forms-log-retention" class="small-text" type="number" min="1" max="3650" name="corsivo_forms_settings[log_retention_days]" value="' . esc_attr((string) $settings['log_retention_days']) . '"> ' . esc_html('giorni');
+	echo '<input id="corsivo-forms-log-retention" class="small-text" type="number" min="1" max="3650" required name="corsivo_forms_settings[log_retention_days]" value="' . esc_attr((string) $settings['log_retention_days']) . '"> ' . esc_html('giorni');
 	echo '<p class="description">' . esc_html('Con il registro disattivato, gli eventi amministrativi di disattivazione e pulizia e i record tecnici di idempotenza restano per un giorno.') . '</p>';
 	echo '</td></tr>';
 
 	echo '<tr><th scope="row"><label for="corsivo-forms-submission-retention">' . esc_html('Conservazione richieste') . '</label></th><td>';
-	echo '<input id="corsivo-forms-submission-retention" class="small-text" type="number" min="0" max="3650" name="corsivo_forms_settings[submission_retention_days]" value="' . esc_attr((string) $settings['submission_retention_days']) . '"> ' . esc_html('giorni');
+	echo '<input id="corsivo-forms-submission-retention" class="small-text" type="number" min="0" max="3650" required name="corsivo_forms_settings[submission_retention_days]" value="' . esc_attr((string) $settings['submission_retention_days']) . '"> ' . esc_html('giorni');
 	echo '<p class="description">' . esc_html('Imposta 0 per conservare le richieste senza scadenza automatica.') . '</p>';
 	echo '</td></tr>';
 
